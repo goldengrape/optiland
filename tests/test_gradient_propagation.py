@@ -17,8 +17,7 @@ def test_propagate_through_radial_grin_lens():
     # 2. Define entry and exit surfaces (a GRIN slab of 10mm thickness)
     entry_surface = GradientBoundarySurface(thickness=10.0)
     exit_surface = GradientBoundarySurface(thickness=0.0) # Exit surface is at z=10 relative to entry
-    exit_surface.z = 10.0
-
+            exit_surface.geometry.cs.z = 10.0
     # 3. Create a single ray parallel to the z-axis, offset in y
     initial_y = 1.0
     rays_in = RealRays(
@@ -46,7 +45,7 @@ def test_propagate_through_radial_grin_lens():
     final_dir = be.to_numpy(be.stack([rays_out.L, rays_out.M, rays_out.N], axis=-1))
 
     # Assert that the ray is on the exit surface
-    assert np.isclose(final_pos[0, 2], exit_surface.z, atol=1e-5)
+    assert np.isclose(final_pos[0, 2], exit_surface.geometry.cs.z, atol=1e-5)
 
     # Assert that the ray has bent towards the optical axis (y < initial_y)
     assert final_pos[0, 1] < initial_y

@@ -95,7 +95,13 @@ def propagate_through_gradient(
             intensity=be.ones_like(segment_len), wavelength=rays_in.w[active_rays]
         )
 
-        distance_to_intersect = exit_surface.intersect(segment_rays)
+        # Localize rays to the exit surface's coordinate system
+        exit_surface.geometry.localize(segment_rays)
+
+        distance_to_intersect = exit_surface.geometry.distance(segment_rays)
+
+        # Globalize rays back
+        exit_surface.geometry.globalize(segment_rays)
 
         # Identify rays that intersect within the current step
         intersected_mask = (distance_to_intersect > 1e-9) & (distance_to_intersect <= segment_len)
