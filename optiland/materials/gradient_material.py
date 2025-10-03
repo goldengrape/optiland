@@ -34,9 +34,11 @@ class GradientMaterial(BaseMaterial):
     name: str = "GRIN Material"
 
     def __post_init__(self):
-        # Dataclasses don't automatically call the __init__ of the base class.
-        # We use __post_init__ to call it.
-        super().__init__()
+        # The base class __init__ sets up mutable caches, which conflicts with a frozen dataclass.
+        # We manually initialize the caches here using object.__setattr__ to bypass the frozen check,
+        # thus satisfying the base class's requirement for these attributes to exist.
+        object.__setattr__(self, '_n_cache', {})
+        object.__setattr__(self, '_k_cache', {})
 
     def _calculate_n(self, wavelength, **kwargs):
         """
