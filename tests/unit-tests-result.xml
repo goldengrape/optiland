@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.958" timestamp="2025-10-03T15:09:32.322886-07:00" hostname="glaptop-16"><testcase classname="tests.test_gradient_propagation" name="test_propagate_through_radial_grin_lens" time="0.001"><failure message="TypeError: Tuple[t0, t1, ...]: each t must be a type. Got (&lt;class 'numpy.ndarray'&gt;, &lt;class 'torch.Tensor'&gt;).">def test_propagate_through_radial_grin_lens():
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.291" timestamp="2025-10-03T15:14:44.640240-07:00" hostname="glaptop-16"><testcase classname="tests.test_gradient_propagation" name="test_propagate_through_radial_grin_lens" time="0.006"><failure message="AttributeError: The 'numpy' backend (module optiland.backend.numpy_backend) has no attribute 'Tensor'.">def test_propagate_through_radial_grin_lens():
         """Test that a ray is focused by a simple radial GRIN lens."""
         # 1. Define a focusing radial GRIN material (n decreases with r)
         grin_material = GradientMaterial(n0=1.5, nr2=-0.01)
@@ -35,54 +35,61 @@ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 ..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:833: in wrapper
     result = func(*args, **kwargs)
              ^^^^^^^^^^^^^^^^^^^^^
-optiland\interactions\gradient_propagation.py:55: in propagate_through_gradient
-    def derivatives(current_r: be.ndarray, current_k: be.ndarray) -&gt; Tuple[be.ndarray, be.ndarray]:
-                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-..\..\miniconda3\envs\optiland\Lib\typing.py:379: in inner
-    return func(*args, **kwds)
-           ^^^^^^^^^^^^^^^^^^^
-..\..\miniconda3\envs\optiland\Lib\typing.py:1679: in __getitem__
-    params = tuple(_type_check(p, msg) for p in params)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-..\..\miniconda3\envs\optiland\Lib\typing.py:1679: in &lt;genexpr&gt;
-    params = tuple(_type_check(p, msg) for p in params)
-                   ^^^^^^^^^^^^^^^^^^^
+optiland\interactions\gradient_propagation.py:69: in propagate_through_gradient
+    n_current = grin_material.get_index(r_active[:, 0], r_active[:, 1], r_active[:, 2])
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1148: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:816: in wrapper
+    violation_error = _assert_preconditions(
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:361: in _assert_preconditions
+    check = contract.condition(**condition_kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+optiland\materials\gradient_material.py:62: in &lt;lambda&gt;
+    @icontract.require(lambda x, y, z: all(isinstance(v, (int, float, np.ndarray, be.Tensor)) for v in [x, y, z]))
+                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+optiland\materials\gradient_material.py:62: in &lt;genexpr&gt;
+    @icontract.require(lambda x, y, z: all(isinstance(v, (int, float, np.ndarray, be.Tensor)) for v in [x, y, z]))
+                                                                                  ^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-arg = (&lt;class 'numpy.ndarray'&gt;, &lt;class 'torch.Tensor'&gt;)
-msg = 'Tuple[t0, t1, ...]: each t must be a type.'
-is_argument = True, module = None
+name = 'Tensor'
 
-    def _type_check(arg, msg, is_argument=True, module=None, *, allow_special_forms=False):
-        """Check that the argument is a type, and return it (internal helper).
+    def __getattr__(name):
+        """Dynamically retrieve attributes (functions/constants) from the current backend.
     
-        As a special case, accept None and return type(None) instead. Also wrap strings
-        into ForwardRef instances. Consider several corner cases, for example plain
-        special forms like Union are not valid, while Union[int, str] is OK, etc.
-        The msg argument is a human-readable error message, e.g.::
+        When a user accesses an attribute (e.g., be.sin or be.pi), this function
+        tries to retrieve the attribute from the current backend module. If not found,
+        it attempts to retrieve the attribute from an optional `_lib` attribute of the
+        backend module (allowing for a two-level backend organization).
     
-            "Union[arg, ...]: arg should be a type."
-    
-        We append the repr() of the actual value (truncated to 100 chars).
+        Raises:
+            AttributeError: If the attribute is not found in the current backend.
         """
-        invalid_generic_forms = (Generic, Protocol)
-        if not allow_special_forms:
-            invalid_generic_forms += (ClassVar,)
-            if is_argument:
-                invalid_generic_forms += (Final,)
+        if name in globals():
+            return globals()[name]
     
-        arg = _type_convert(arg, module=module, allow_special_forms=allow_special_forms)
-        if (isinstance(arg, _GenericAlias) and
-                arg.__origin__ in invalid_generic_forms):
-            raise TypeError(f"{arg} is not valid as type argument")
-        if arg in (Any, LiteralString, NoReturn, Never, Self, TypeAlias):
-            return arg
-        if allow_special_forms and arg in (ClassVar, Final):
-            return arg
-        if isinstance(arg, _SpecialForm) or arg in (Generic, Protocol):
-            raise TypeError(f"Plain {arg} is not valid as type argument")
-        if type(arg) is tuple:
-&gt;           raise TypeError(f"{msg} Got {arg!r:.100}.")
-E           TypeError: Tuple[t0, t1, ...]: each t must be a type. Got (&lt;class 'numpy.ndarray'&gt;, &lt;class 'torch.Tensor'&gt;).
+        backend = _backends[_current_backend]
+    
+        # Direct attribute lookup in the backend module.
+        try:
+            return getattr(backend, name)
+        except AttributeError:
+            pass
+    
+        # Fallback: check the _lib submodule if it exists.
+        lib = getattr(backend, "_lib", None)
+        if lib:
+            try:
+                return getattr(lib, name)
+            except AttributeError:
+                pass
+    
+&gt;       raise AttributeError(
+            f"The '{_current_backend}' backend (module {backend.__name__}) "
+            f"has no attribute '{name}'."
+        )
+E       AttributeError: The 'numpy' backend (module optiland.backend.numpy_backend) has no attribute 'Tensor'.
 
-..\..\miniconda3\envs\optiland\Lib\typing.py:197: TypeError</failure></testcase></testsuite></testsuites>
+optiland\backend\__init__.py:152: AttributeError</failure></testcase></testsuite></testsuites>

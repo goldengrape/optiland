@@ -8,6 +8,7 @@ import numpy as np
 
 from optiland.materials.base import BaseMaterial
 import optiland.backend as be
+from optiland.backend import ndarray
 
 
 @icontract.invariant(
@@ -59,7 +60,7 @@ class GradientMaterial(BaseMaterial):
         """
         return 0.0
 
-    @icontract.require(lambda x, y, z: all(isinstance(v, (int, float, np.ndarray, be.Tensor)) for v in [x, y, z]))
+    @icontract.require(lambda x, y, z: all(isinstance(v, (int, float) + ndarray) for v in [x, y, z]))
     def get_index(self, x: np.ndarray, y: np.ndarray, z: np.ndarray, wavelength: float = None) -> np.ndarray:
         """
         Calculates the refractive index n for a vector of coordinates (x, y, z). This is a pure function.
@@ -74,7 +75,7 @@ class GradientMaterial(BaseMaterial):
              self.nz3 * z**3)
         return n
 
-    @icontract.require(lambda x, y, z: all(isinstance(v, (int, float, np.ndarray, be.Tensor)) for v in [x, y, z]))
+    @icontract.require(lambda x, y, z: all(isinstance(v, (int, float) + ndarray) for v in [x, y, z]))
     @icontract.ensure(lambda result, x: result.shape == (len(x), 3) if hasattr(x, '__len__') else result.shape == (3,))
     def get_gradient(self, x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
         """
