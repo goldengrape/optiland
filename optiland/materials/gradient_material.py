@@ -1,14 +1,16 @@
 """Defines a gradient-index material and the calculation of its physical properties."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Tuple
+
 import icontract
 import numpy as np
-from typing import Tuple
 
 from optiland.materials.base import BaseMaterial
 
+
 @icontract.invariant(
-    lambda self: all(isinstance(getattr(self, c), (int, float)) for c in self.__annotations__ if c != 'name'),
+    lambda self: all(isinstance(getattr(self, c), (int, float)) for c in self.__annotations__ if c not in ['name', '_n_cache', '_k_cache']),
     "All refractive index coefficients must be numeric types"
 )
 @dataclass(frozen=True)
@@ -31,8 +33,31 @@ class GradientMaterial(BaseMaterial):
     nz3: float = 0.0
     name: str = "GRIN Material"
 
+    def __post_init__(self):
+        # Dataclasses don't automatically call the __init__ of the base class.
+        # We use __post_init__ to call it.
+        super().__init__()
+
+    def _calculate_n(self, wavelength, **kwargs):
+        """
+        Calculates the refractive index.
+
+        This method is required to satisfy the BaseMaterial abstract class.
+        If positional arguments (x, y, z) are provided in kwargs, it calculates
+        the position-dependent index. Otherwise, it returns the base index n0.
+        """
+        if 'x' in kwargs and 'y' in kwargs and 'z' in kwargs:
+            return self.get_index(kwargs['x'], kwargs['y'], kwargs['z'], wavelength)
+        return self.n0
+
+    def _calculate_k(self, wavelength, **kwargs):
+        """
+        Calculates the extinction coefficient (k). Returns 0 for this ideal material.
+        """
+        return 0.0
+
     @icontract.require(lambda x, y, z: all(isinstance(v, (int, float, np.ndarray)) for v in [x, y, z]))
-    def get_index(self, x: float, y: float, z: float) -> float:
+    def get_index(self, x: float, y: float, z: float, wavelength: float = None) -> float:
         """
         Calculates the refractive index n at a given coordinate (x, y, z). This is a pure function.
         """
@@ -60,7 +85,7 @@ class GradientMaterial(BaseMaterial):
         dn_dz = self.nz1 + 2 * self.nz2 * z + 3 * self.nz3 * z**2
         return np.array([dn_dx, dn_dy, dn_dz], dtype=float)
 
-    def get_index_and_gradient(self, x: float, y: float, z: float) -> Tuple[float, np.ndarray]:
+    def get_index_and_gradient(self, x: float, y: float, z: float, wavelength: float = None) -> Tuple[float, np.ndarray]:
         """
         Calculates both the refractive index n and its gradient ∇n in a single call
         for performance optimization.
@@ -80,12 +105,3 @@ class GradientMaterial(BaseMaterial):
         dn_dz = self.nz1 + 2 * self.nz2 * z + 3 * self.nz3 * z**2
 
         return float(n), np.array([dn_dx, dn_dy, dn_dz], dtype=float)
-
-    def _calculate_n(self, wavelength, **kwargs):
-        if 'x' in kwargs and 'y' in kwargs and 'z' in kwargs:
-            return self.get_index(kwargs['x'], kwargs['y'], kwargs['z'])
-        else:
-            return self.n0
-
-    def _calculate_k(self, wavelength, **kwargs):
-        return 0.0

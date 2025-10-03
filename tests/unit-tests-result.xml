@@ -1,128 +1,261 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="7" failures="1" skipped="0" tests="8" time="1.583" timestamp="2025-10-02T21:32:14.406970-07:00" hostname="glaptop-16"><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_initialization_default" time="0.003"><failure message="TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924AA4610&gt;
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="7" failures="2" skipped="0" tests="9" time="1.035" timestamp="2025-10-03T13:19:57.581088-07:00" hostname="glaptop-16"><testcase classname="tests.test_gradient_material" name="test_gradient_material_initialization" time="0.001"><failure message="dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'">def test_gradient_material_initialization():
+        """Test the default and custom initialization of GradientMaterial."""
+        # Test default initialization
+&gt;       default_mat = GradientMaterial()
+                      ^^^^^^^^^^^^^^^^^^
 
-    def test_initialization_default(self):
-        """Test default initialization of GradientMaterial."""
-&gt;       material = GradientMaterial()
-                   ^^^^^^^^^^^^^^^^^^
-E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+tests\test_gradient_material.py:26: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1027: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:11: in __init__
+    ???
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1141: in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+optiland\materials\gradient_material.py:39: in __post_init__
+    super().__init__()
+optiland\materials\base.py:49: in __init__
+    self._n_cache = {}
+    ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-tests\test_gradient_material.py:29: TypeError</failure></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_initialization_custom" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B91CD0&gt;
+self = GradientMaterial(n0=1.0, nr2=0.0, nr4=0.0, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
+name = '_n_cache', value = {}
 
-    @pytest.fixture
-    def sample_material(self):
-        """A sample GradientMaterial for testing."""
-&gt;       return GradientMaterial(
-            n0=1.5,
-            nr2=0.1,
-            nr4=0.01,
-            nr6=0.001,
-            nz1=0.2,
-            nz2=0.02,
-            nz3=0.002,
-            name="Test GRIN Material",
-        )
-E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+&gt;   ???
+E   dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'
 
-tests\test_gradient_material.py:16: TypeError</error></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_get_index" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B92110&gt;
+&lt;string&gt;:4: FrozenInstanceError</failure></testcase><testcase classname="tests.test_gradient_material" name="test_immutability" time="0.000"><error message="failed on setup with &quot;dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'&quot;">@pytest.fixture
+    def grin_material_radial():
+        """A fixture for a GRIN material with only radial components."""
+&gt;       return GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    @pytest.fixture
-    def sample_material(self):
-        """A sample GradientMaterial for testing."""
-&gt;       return GradientMaterial(
-            n0=1.5,
-            nr2=0.1,
-            nr4=0.01,
-            nr6=0.001,
-            nz1=0.2,
-            nz2=0.02,
-            nz3=0.002,
-            name="Test GRIN Material",
-        )
-E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+tests\test_gradient_material.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1027: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:11: in __init__
+    ???
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1141: in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+optiland\materials\gradient_material.py:39: in __post_init__
+    super().__init__()
+optiland\materials\base.py:49: in __init__
+    self._n_cache = {}
+    ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-tests\test_gradient_material.py:16: TypeError</error></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_get_index_at_origin" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B92790&gt;
+self = GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
+name = '_n_cache', value = {}
 
-    @pytest.fixture
-    def sample_material(self):
-        """A sample GradientMaterial for testing."""
-&gt;       return GradientMaterial(
-            n0=1.5,
-            nr2=0.1,
-            nr4=0.01,
-            nr6=0.001,
-            nz1=0.2,
-            nz2=0.02,
-            nz3=0.002,
-            name="Test GRIN Material",
-        )
-E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+&gt;   ???
+E   dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'
 
-tests\test_gradient_material.py:16: TypeError</error></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_get_gradient" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B92DD0&gt;
+&lt;string&gt;:4: FrozenInstanceError</error></testcase><testcase classname="tests.test_gradient_material" name="test_get_index_on_axis" time="0.000"><error message="failed on setup with &quot;dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'&quot;">@pytest.fixture
+    def grin_material_radial():
+        """A fixture for a GRIN material with only radial components."""
+&gt;       return GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    @pytest.fixture
-    def sample_material(self):
-        """A sample GradientMaterial for testing."""
-&gt;       return GradientMaterial(
-            n0=1.5,
-            nr2=0.1,
-            nr4=0.01,
-            nr6=0.001,
-            nz1=0.2,
-            nz2=0.02,
-            nz3=0.002,
-            name="Test GRIN Material",
-        )
-E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+tests\test_gradient_material.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1027: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:11: in __init__
+    ???
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1141: in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+optiland\materials\gradient_material.py:39: in __post_init__
+    super().__init__()
+optiland\materials\base.py:49: in __init__
+    self._n_cache = {}
+    ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-tests\test_gradient_material.py:16: TypeError</error></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_get_gradient_at_origin" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B93410&gt;
+self = GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
+name = '_n_cache', value = {}
 
-    @pytest.fixture
-    def sample_material(self):
-        """A sample GradientMaterial for testing."""
-&gt;       return GradientMaterial(
-            n0=1.5,
-            nr2=0.1,
-            nr4=0.01,
-            nr6=0.001,
-            nz1=0.2,
-            nz2=0.02,
-            nz3=0.002,
-            name="Test GRIN Material",
-        )
-E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+&gt;   ???
+E   dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'
 
-tests\test_gradient_material.py:16: TypeError</error></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_get_index_and_gradient" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B93A50&gt;
+&lt;string&gt;:4: FrozenInstanceError</error></testcase><testcase classname="tests.test_gradient_material" name="test_get_index_off_axis" time="0.000"><error message="failed on setup with &quot;dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'&quot;">@pytest.fixture
+    def grin_material_radial():
+        """A fixture for a GRIN material with only radial components."""
+&gt;       return GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    @pytest.fixture
-    def sample_material(self):
-        """A sample GradientMaterial for testing."""
-&gt;       return GradientMaterial(
-            n0=1.5,
-            nr2=0.1,
-            nr4=0.01,
-            nr6=0.001,
-            nz1=0.2,
-            nz2=0.02,
-            nz3=0.002,
-            name="Test GRIN Material",
-        )
-E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+tests\test_gradient_material.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1027: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:11: in __init__
+    ???
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1141: in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+optiland\materials\gradient_material.py:39: in __post_init__
+    super().__init__()
+optiland\materials\base.py:49: in __init__
+    self._n_cache = {}
+    ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-tests\test_gradient_material.py:16: TypeError</error></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_immutability" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B9C0D0&gt;
+self = GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
+name = '_n_cache', value = {}
 
-    @pytest.fixture
-    def sample_material(self):
-        """A sample GradientMaterial for testing."""
-&gt;       return GradientMaterial(
-            n0=1.5,
-            nr2=0.1,
-            nr4=0.01,
-            nr6=0.001,
-            nz1=0.2,
-            nz2=0.02,
-            nz3=0.002,
-            name="Test GRIN Material",
-        )
-E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+&gt;   ???
+E   dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'
 
-tests\test_gradient_material.py:16: TypeError</error></testcase></testsuite></testsuites>
+&lt;string&gt;:4: FrozenInstanceError</error></testcase><testcase classname="tests.test_gradient_material" name="test_get_gradient_on_axis" time="0.000"><error message="failed on setup with &quot;dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'&quot;">@pytest.fixture
+    def grin_material_radial():
+        """A fixture for a GRIN material with only radial components."""
+&gt;       return GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_gradient_material.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1027: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:11: in __init__
+    ???
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1141: in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+optiland\materials\gradient_material.py:39: in __post_init__
+    super().__init__()
+optiland\materials\base.py:49: in __init__
+    self._n_cache = {}
+    ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
+name = '_n_cache', value = {}
+
+&gt;   ???
+E   dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'
+
+&lt;string&gt;:4: FrozenInstanceError</error></testcase><testcase classname="tests.test_gradient_material" name="test_get_gradient_off_axis" time="0.000"><error message="failed on setup with &quot;dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'&quot;">@pytest.fixture
+    def grin_material_radial():
+        """A fixture for a GRIN material with only radial components."""
+&gt;       return GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_gradient_material.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1027: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:11: in __init__
+    ???
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1141: in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+optiland\materials\gradient_material.py:39: in __post_init__
+    super().__init__()
+optiland\materials\base.py:49: in __init__
+    self._n_cache = {}
+    ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
+name = '_n_cache', value = {}
+
+&gt;   ???
+E   dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'
+
+&lt;string&gt;:4: FrozenInstanceError</error></testcase><testcase classname="tests.test_gradient_material" name="test_get_index_and_gradient" time="0.001"><error message="failed on setup with &quot;dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'&quot;">@pytest.fixture
+    def grin_material_radial():
+        """A fixture for a GRIN material with only radial components."""
+&gt;       return GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_gradient_material.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1027: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:11: in __init__
+    ???
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1141: in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+optiland\materials\gradient_material.py:39: in __post_init__
+    super().__init__()
+optiland\materials\base.py:49: in __init__
+    self._n_cache = {}
+    ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
+name = '_n_cache', value = {}
+
+&gt;   ???
+E   dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'
+
+&lt;string&gt;:4: FrozenInstanceError</error></testcase><testcase classname="tests.test_gradient_material" name="test_icontract_invariant_violation" time="0.001"><failure message="dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'">def test_icontract_invariant_violation():
+        """Test that creating a material with non-numeric coefficients raises an error."""
+        with pytest.raises(icontract.errors.ViolationError):
+&gt;           GradientMaterial(n0="not a number")
+
+tests\test_gradient_material.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1027: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:11: in __init__
+    ???
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1141: in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+optiland\materials\gradient_material.py:39: in __post_init__
+    super().__init__()
+optiland\materials\base.py:49: in __init__
+    self._n_cache = {}
+    ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = GradientMaterial(n0='not a number', nr2=0.0, nr4=0.0, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
+name = '_n_cache', value = {}
+
+&gt;   ???
+E   dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'
+
+&lt;string&gt;:4: FrozenInstanceError</failure></testcase><testcase classname="tests.test_gradient_material" name="test_icontract_require_violation" time="0.001"><error message="failed on setup with &quot;dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'&quot;">@pytest.fixture
+    def grin_material_radial():
+        """A fixture for a GRIN material with only radial components."""
+&gt;       return GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_gradient_material.py:14: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1027: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+&lt;string&gt;:11: in __init__
+    ???
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:1141: in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+optiland\materials\gradient_material.py:39: in __post_init__
+    super().__init__()
+optiland\materials\base.py:49: in __init__
+    self._n_cache = {}
+    ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
+name = '_n_cache', value = {}
+
+&gt;   ???
+E   dataclasses.FrozenInstanceError: cannot assign to field '_n_cache'
+
+&lt;string&gt;:4: FrozenInstanceError</error></testcase></testsuite></testsuites>

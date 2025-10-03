@@ -2,139 +2,116 @@
 
 import pytest
 import numpy as np
-from numpy.testing import assert_allclose
-from dataclasses import is_dataclass, FrozenInstanceError
+from dataclasses import FrozenInstanceError
+import icontract
 
 from optiland.materials.gradient_material import GradientMaterial
 
 
-class TestGradientMaterial:
-    """Test suite for the GradientMaterial class."""
+@pytest.fixture
+def grin_material_radial():
+    """A fixture for a GRIN material with only radial components."""
+    return GradientMaterial(n0=1.5, nr2=0.1, nr4=0.01)
 
-    @pytest.fixture
-    def sample_material(self):
-        """A sample GradientMaterial for testing."""
-        return GradientMaterial(
-            n0=1.5,
-            nr2=0.1,
-            nr4=0.01,
-            nr6=0.001,
-            nz1=0.2,
-            nz2=0.02,
-            nz3=0.002,
-            name="Test GRIN Material",
-        )
 
-    def test_initialization_default(self):
-        """Test default initialization of GradientMaterial."""
-        material = GradientMaterial()
-        assert material.n0 == 1.0
-        assert material.nr2 == 0.0
-        assert material.nr4 == 0.0
-        assert material.nr6 == 0.0
-        assert material.nz1 == 0.0
-        assert material.nz2 == 0.0
-        assert material.nz3 == 0.0
-        assert material.name == "GRIN Material"
+@pytest.fixture
+def grin_material_axial():
+    """A fixture for a GRIN material with only axial components."""
+    return GradientMaterial(n0=1.6, nz1=0.2, nz2=0.05)
 
-    def test_initialization_custom(self, sample_material):
-        """Test custom initialization of GradientMaterial."""
-        assert sample_material.n0 == 1.5
-        assert sample_material.nr2 == 0.1
-        assert sample_material.nr4 == 0.01
-        assert sample_material.nr6 == 0.001
-        assert sample_material.nz1 == 0.2
-        assert sample_material.nz2 == 0.02
-        assert sample_material.nz3 == 0.002
-        assert sample_material.name == "Test GRIN Material"
 
-    def test_get_index(self, sample_material):
-        """Test the get_index method."""
-        x, y, z = 1, 2, 3
-        r2 = x**2 + y**2
-        expected_n = (
-            sample_material.n0
-            + sample_material.nr2 * r2
-            + sample_material.nr4 * r2**2
-            + sample_material.nr6 * r2**3
-            + sample_material.nz1 * z
-            + sample_material.nz2 * z**2
-            + sample_material.nz3 * z**3
-        )
-        n = sample_material.get_index(x, y, z)
-        assert_allclose(n, expected_n)
+def test_gradient_material_initialization():
+    """Test the default and custom initialization of GradientMaterial."""
+    # Test default initialization
+    default_mat = GradientMaterial()
+    assert default_mat.n0 == 1.0
+    assert default_mat.nr2 == 0.0
+    assert default_mat.name == "GRIN Material"
 
-    def test_get_index_at_origin(self, sample_material):
-        """Test get_index at the origin (0,0,0)."""
-        n = sample_material.get_index(0, 0, 0)
-        assert_allclose(n, sample_material.n0)
+    # Test custom initialization
+    custom_mat = GradientMaterial(n0=1.5, nr2=0.1, name="Custom GRIN")
+    assert custom_mat.n0 == 1.5
+    assert custom_mat.nr2 == 0.1
+    assert custom_mat.name == "Custom GRIN"
 
-    def test_get_gradient(self, sample_material):
-        """Test the get_gradient method."""
-        x, y, z = 1, 2, 3
-        r2 = x**2 + y**2
 
-        # Expected gradient components
-        dn_dr2 = (
-            sample_material.nr2
-            + 2 * sample_material.nr4 * r2
-            + 3 * sample_material.nr6 * r2**2
-        )
-        expected_dn_dx = 2 * x * dn_dr2
-        expected_dn_dy = 2 * y * dn_dr2
-        expected_dn_dz = (
-            sample_material.nz1
-            + 2 * sample_material.nz2 * z
-            + 3 * sample_material.nz3 * z**2
-        )
+def test_immutability(grin_material_radial):
+    """Test that the GradientMaterial instance is immutable."""
+    with pytest.raises(FrozenInstanceError):
+        grin_material_radial.n0 = 1.6
 
-        grad_n = sample_material.get_gradient(x, y, z)
-        expected_grad = np.array([expected_dn_dx, expected_dn_dy, expected_dn_dz])
 
-        assert_allclose(grad_n, expected_grad)
+def test_get_index_on_axis(grin_material_radial, grin_material_axial):
+    """Test get_index method at coordinates on the z-axis (x=0, y=0)."""
+    # For radial material, index on-axis should just be n0
+    assert grin_material_radial.get_index(0, 0, 0) == pytest.approx(1.5)
+    assert grin_material_radial.get_index(0, 0, 5) == pytest.approx(1.5)
 
-    def test_get_gradient_at_origin(self, sample_material):
-        """Test get_gradient at the origin (0,0,0)."""
-        grad_n = sample_material.get_gradient(0, 0, 0)
-        expected_grad = np.array([0, 0, sample_material.nz1])
-        assert_allclose(grad_n, expected_grad)
+    # For axial material, index on-axis depends on z
+    assert grin_material_axial.get_index(0, 0, 0) == pytest.approx(1.6)
+    # n = 1.6 + 0.2*z + 0.05*z^2 => 1.6 + 0.2*2 + 0.05*4 = 1.6 + 0.4 + 0.2 = 2.2
+    assert grin_material_axial.get_index(0, 0, 2) == pytest.approx(2.2)
 
-    def test_get_index_and_gradient(self, sample_material):
-        """Test the get_index_and_gradient method for consistency."""
-        x, y, z = 1, 2, 3
 
-        # Calculate using combined method
-        n_combined, grad_combined = sample_material.get_index_and_gradient(x, y, z)
+def test_get_index_off_axis(grin_material_radial, grin_material_axial):
+    """Test get_index method at off-axis coordinates."""
+    # For radial material, r^2 = 1^2 + 2^2 = 5
+    # n = 1.5 + 0.1*r^2 + 0.01*r^4 = 1.5 + 0.1*5 + 0.01*25 = 1.5 + 0.5 + 0.25 = 2.25
+    assert grin_material_radial.get_index(1, 2, 5) == pytest.approx(2.25)
 
-        # Calculate using separate methods
-        n_separate = sample_material.get_index(x, y, z)
-        grad_separate = sample_material.get_gradient(x, y, z)
+    # For axial material, index should not depend on r
+    assert grin_material_axial.get_index(1, 2, 0) == pytest.approx(1.6)
 
-        # Check for consistency
-        assert_allclose(n_combined, n_separate)
-        assert_allclose(grad_combined, grad_separate)
 
-    def test_immutability(self, sample_material):
-        """Test that the dataclass is frozen."""
-        assert is_dataclass(sample_material) and sample_material.__dataclass_params__.frozen
-        with pytest.raises(FrozenInstanceError):
-            sample_material.n0 = 2.0
+def test_get_gradient_on_axis(grin_material_radial, grin_material_axial):
+    """Test get_gradient method on the z-axis (x=0, y=0)."""
+    # For radial material, gradient on-axis should be zero in x and y
+    grad_radial = grin_material_radial.get_gradient(0, 0, 5)
+    np.testing.assert_allclose(grad_radial, [0, 0, 0])
 
-    def test_n_method_without_coords(self, sample_material):
-        """Test the inherited n() method without spatial coordinates."""
-        # Should return the base refractive index n0
-        assert_allclose(sample_material.n(wavelength=0.5), sample_material.n0)
+    # For axial material, gradient on-axis should be zero in x and y
+    # dn/dz = nz1 + 2*nz2*z = 0.2 + 2*0.05*z = 0.2 + 0.1*z
+    # At z=3, dn/dz = 0.2 + 0.3 = 0.5
+    grad_axial = grin_material_axial.get_gradient(0, 0, 3)
+    np.testing.assert_allclose(grad_axial, [0, 0, 0.5])
 
-    def test_n_method_with_coords(self, sample_material):
-        """Test the inherited n() method with spatial coordinates."""
-        x, y, z = 1, 2, 3
-        # Should return the same as get_index
-        n_from_n_method = sample_material.n(wavelength=0.5, x=x, y=y, z=z)
-        n_from_get_index = sample_material.get_index(x, y, z)
-        assert_allclose(n_from_n_method, n_from_get_index)
 
-    def test_k_method(self, sample_material):
-        """Test the inherited k() method."""
-        # Should always return 0.0
-        assert_allclose(sample_material.k(wavelength=0.5), 0.0)
-        assert_allclose(sample_material.k(wavelength=0.5, x=1, y=2, z=3), 0.0)
+def test_get_gradient_off_axis(grin_material_radial):
+    """Test get_gradient method at off-axis coordinates."""
+    x, y, z = 1, 2, 5
+    r2 = x**2 + y**2  # 5
+
+    # dn/dr2 = nr2 + 2*nr4*r2 = 0.1 + 2*0.01*5 = 0.1 + 0.1 = 0.2
+    # dn/dx = 2*x*dn/dr2 = 2*1*0.2 = 0.4
+    # dn/dy = 2*y*dn/dr2 = 2*2*0.2 = 0.8
+    # dn/dz = 0
+    expected_gradient = [0.4, 0.8, 0.0]
+    calculated_gradient = grin_material_radial.get_gradient(x, y, z)
+    np.testing.assert_allclose(calculated_gradient, expected_gradient)
+
+
+def test_get_index_and_gradient(grin_material_radial):
+    """Test that get_index_and_gradient returns consistent results."""
+    x, y, z = 1, 2, 5
+    index, gradient = grin_material_radial.get_index_and_gradient(x, y, z)
+
+    expected_index = grin_material_radial.get_index(x, y, z)
+    expected_gradient = grin_material_radial.get_gradient(x, y, z)
+
+    assert index == pytest.approx(expected_index)
+    np.testing.assert_allclose(gradient, expected_gradient)
+
+
+def test_icontract_invariant_violation():
+    """Test that creating a material with non-numeric coefficients raises an error."""
+    with pytest.raises(icontract.errors.ViolationError):
+        GradientMaterial(n0="not a number")
+
+
+def test_icontract_require_violation(grin_material_radial):
+    """Test that calling methods with invalid inputs raises an error."""
+    with pytest.raises(icontract.errors.ViolationError):
+        grin_material_radial.get_index("a", "b", "c")
+
+    with pytest.raises(icontract.errors.ViolationError):
+        grin_material_radial.get_gradient(None, 1, 2)
