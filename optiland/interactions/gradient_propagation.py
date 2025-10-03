@@ -7,7 +7,7 @@ from typing import Tuple
 
 import optiland.backend as be
 from optiland.rays.real_rays import RealRays
-from optiland.surfaces.base import BaseSurface
+from optiland.surfaces.standard_surface import Surface as BaseSurface
 from optiland.materials.gradient_material import GradientMaterial
 
 
@@ -52,7 +52,7 @@ def propagate_through_gradient(
     final_r = be.copy(r)
     final_k = be.copy(k)
 
-    def derivatives(current_r: be.ndarray, current_k: be.ndarray) -> Tuple[be.ndarray, be.ndarray]:
+    def derivatives(current_r: be.ndarray, current_k: be.ndarray) -> tuple:
         n, grad_n = grin_material.get_index_and_gradient(current_r[:, 0], current_r[:, 1], current_r[:, 2])
         # Add a small epsilon to n to avoid division by zero
         dr_ds = current_k / (n[:, be.newaxis] + 1e-9)

@@ -1,8 +1,88 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="2.736" timestamp="2025-10-03T15:02:10.051939-07:00" hostname="glaptop-16"><testcase classname="" name="tests.test_gradient_propagation" time="0.000"><error message="collection failure">ImportError while importing test module 'C:\Users\golde\code\optiland\tests\test_gradient_propagation.py'.
-Hint: make sure your test modules/packages have valid Python names.
-Traceback:
-tests\test_gradient_propagation.py:10: in &lt;module&gt;
-    from optiland.interactions.gradient_propagation import propagate_through_gradient
-optiland\interactions\gradient_propagation.py:10: in &lt;module&gt;
-    from optiland.surfaces.base import BaseSurface
-E   ModuleNotFoundError: No module named 'optiland.surfaces.base'</error></testcase></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="0.958" timestamp="2025-10-03T15:09:32.322886-07:00" hostname="glaptop-16"><testcase classname="tests.test_gradient_propagation" name="test_propagate_through_radial_grin_lens" time="0.001"><failure message="TypeError: Tuple[t0, t1, ...]: each t must be a type. Got (&lt;class 'numpy.ndarray'&gt;, &lt;class 'torch.Tensor'&gt;).">def test_propagate_through_radial_grin_lens():
+        """Test that a ray is focused by a simple radial GRIN lens."""
+        # 1. Define a focusing radial GRIN material (n decreases with r)
+        grin_material = GradientMaterial(n0=1.5, nr2=-0.01)
+    
+        # 2. Define entry and exit surfaces (a GRIN slab of 10mm thickness)
+        entry_surface = GradientBoundarySurface(thickness=10.0)
+        exit_surface = GradientBoundarySurface(thickness=0.0) # Exit surface is at z=10 relative to entry
+        exit_surface.z = 10.0
+    
+        # 3. Create a single ray parallel to the z-axis, offset in y
+        initial_y = 1.0
+        rays_in = RealRays(
+            x=be.array([0.0]),
+            y=be.array([initial_y]),
+            z=be.array([0.0]),
+            L=be.array([0.0]),
+            M=be.array([0.0]),
+            N=be.array([1.0]),
+            intensity=be.array([1.0]),
+            wavelength=be.array([0.55])
+        )
+    
+        # 4. Call the propagation function
+&gt;       rays_out = propagate_through_gradient(
+            rays_in=rays_in,
+            grin_material=grin_material,
+            exit_surface=exit_surface,
+            step_size=0.1,
+            max_steps=1000
+        )
+
+tests\test_gradient_propagation.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:833: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+optiland\interactions\gradient_propagation.py:55: in propagate_through_gradient
+    def derivatives(current_r: be.ndarray, current_k: be.ndarray) -&gt; Tuple[be.ndarray, be.ndarray]:
+                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\miniconda3\envs\optiland\Lib\typing.py:379: in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+..\..\miniconda3\envs\optiland\Lib\typing.py:1679: in __getitem__
+    params = tuple(_type_check(p, msg) for p in params)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\miniconda3\envs\optiland\Lib\typing.py:1679: in &lt;genexpr&gt;
+    params = tuple(_type_check(p, msg) for p in params)
+                   ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+arg = (&lt;class 'numpy.ndarray'&gt;, &lt;class 'torch.Tensor'&gt;)
+msg = 'Tuple[t0, t1, ...]: each t must be a type.'
+is_argument = True, module = None
+
+    def _type_check(arg, msg, is_argument=True, module=None, *, allow_special_forms=False):
+        """Check that the argument is a type, and return it (internal helper).
+    
+        As a special case, accept None and return type(None) instead. Also wrap strings
+        into ForwardRef instances. Consider several corner cases, for example plain
+        special forms like Union are not valid, while Union[int, str] is OK, etc.
+        The msg argument is a human-readable error message, e.g.::
+    
+            "Union[arg, ...]: arg should be a type."
+    
+        We append the repr() of the actual value (truncated to 100 chars).
+        """
+        invalid_generic_forms = (Generic, Protocol)
+        if not allow_special_forms:
+            invalid_generic_forms += (ClassVar,)
+            if is_argument:
+                invalid_generic_forms += (Final,)
+    
+        arg = _type_convert(arg, module=module, allow_special_forms=allow_special_forms)
+        if (isinstance(arg, _GenericAlias) and
+                arg.__origin__ in invalid_generic_forms):
+            raise TypeError(f"{arg} is not valid as type argument")
+        if arg in (Any, LiteralString, NoReturn, Never, Self, TypeAlias):
+            return arg
+        if allow_special_forms and arg in (ClassVar, Final):
+            return arg
+        if isinstance(arg, _SpecialForm) or arg in (Generic, Protocol):
+            raise TypeError(f"Plain {arg} is not valid as type argument")
+        if type(arg) is tuple:
+&gt;           raise TypeError(f"{msg} Got {arg!r:.100}.")
+E           TypeError: Tuple[t0, t1, ...]: each t must be a type. Got (&lt;class 'numpy.ndarray'&gt;, &lt;class 'torch.Tensor'&gt;).
+
+..\..\miniconda3\envs\optiland\Lib\typing.py:197: TypeError</failure></testcase></testsuite></testsuites>
