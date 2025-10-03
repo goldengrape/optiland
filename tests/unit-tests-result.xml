@@ -1,1 +1,128 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="4" time="4.584" timestamp="2025-10-02T21:26:16.939068-07:00" hostname="glaptop-16"><testcase classname="tests.test_gradient_surface" name="test_gradient_boundary_surface_inheritance" time="0.004" /><testcase classname="tests.test_gradient_surface" name="test_gradient_boundary_surface_default_instantiation" time="0.006" /><testcase classname="tests.test_gradient_surface" name="test_gradient_boundary_surface_specific_instantiation" time="0.002" /><testcase classname="tests.test_gradient_surface" name="test_gradient_boundary_surface_is_a_marker_type" time="0.002" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="7" failures="1" skipped="0" tests="8" time="1.583" timestamp="2025-10-02T21:32:14.406970-07:00" hostname="glaptop-16"><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_initialization_default" time="0.003"><failure message="TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924AA4610&gt;
+
+    def test_initialization_default(self):
+        """Test default initialization of GradientMaterial."""
+&gt;       material = GradientMaterial()
+                   ^^^^^^^^^^^^^^^^^^
+E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+
+tests\test_gradient_material.py:29: TypeError</failure></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_initialization_custom" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B91CD0&gt;
+
+    @pytest.fixture
+    def sample_material(self):
+        """A sample GradientMaterial for testing."""
+&gt;       return GradientMaterial(
+            n0=1.5,
+            nr2=0.1,
+            nr4=0.01,
+            nr6=0.001,
+            nz1=0.2,
+            nz2=0.02,
+            nz3=0.002,
+            name="Test GRIN Material",
+        )
+E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+
+tests\test_gradient_material.py:16: TypeError</error></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_get_index" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B92110&gt;
+
+    @pytest.fixture
+    def sample_material(self):
+        """A sample GradientMaterial for testing."""
+&gt;       return GradientMaterial(
+            n0=1.5,
+            nr2=0.1,
+            nr4=0.01,
+            nr6=0.001,
+            nz1=0.2,
+            nz2=0.02,
+            nz3=0.002,
+            name="Test GRIN Material",
+        )
+E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+
+tests\test_gradient_material.py:16: TypeError</error></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_get_index_at_origin" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B92790&gt;
+
+    @pytest.fixture
+    def sample_material(self):
+        """A sample GradientMaterial for testing."""
+&gt;       return GradientMaterial(
+            n0=1.5,
+            nr2=0.1,
+            nr4=0.01,
+            nr6=0.001,
+            nz1=0.2,
+            nz2=0.02,
+            nz3=0.002,
+            name="Test GRIN Material",
+        )
+E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+
+tests\test_gradient_material.py:16: TypeError</error></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_get_gradient" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B92DD0&gt;
+
+    @pytest.fixture
+    def sample_material(self):
+        """A sample GradientMaterial for testing."""
+&gt;       return GradientMaterial(
+            n0=1.5,
+            nr2=0.1,
+            nr4=0.01,
+            nr6=0.001,
+            nz1=0.2,
+            nz2=0.02,
+            nz3=0.002,
+            name="Test GRIN Material",
+        )
+E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+
+tests\test_gradient_material.py:16: TypeError</error></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_get_gradient_at_origin" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B93410&gt;
+
+    @pytest.fixture
+    def sample_material(self):
+        """A sample GradientMaterial for testing."""
+&gt;       return GradientMaterial(
+            n0=1.5,
+            nr2=0.1,
+            nr4=0.01,
+            nr6=0.001,
+            nz1=0.2,
+            nz2=0.02,
+            nz3=0.002,
+            name="Test GRIN Material",
+        )
+E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+
+tests\test_gradient_material.py:16: TypeError</error></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_get_index_and_gradient" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B93A50&gt;
+
+    @pytest.fixture
+    def sample_material(self):
+        """A sample GradientMaterial for testing."""
+&gt;       return GradientMaterial(
+            n0=1.5,
+            nr2=0.1,
+            nr4=0.01,
+            nr6=0.001,
+            nz1=0.2,
+            nz2=0.02,
+            nz3=0.002,
+            name="Test GRIN Material",
+        )
+E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+
+tests\test_gradient_material.py:16: TypeError</error></testcase><testcase classname="tests.test_gradient_material.TestGradientMaterial" name="test_immutability" time="0.001"><error message="failed on setup with &quot;TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n&quot;">self = &lt;tests.test_gradient_material.TestGradientMaterial object at 0x0000023924B9C0D0&gt;
+
+    @pytest.fixture
+    def sample_material(self):
+        """A sample GradientMaterial for testing."""
+&gt;       return GradientMaterial(
+            n0=1.5,
+            nr2=0.1,
+            nr4=0.01,
+            nr6=0.001,
+            nz1=0.2,
+            nz2=0.02,
+            nz3=0.002,
+            name="Test GRIN Material",
+        )
+E       TypeError: Can't instantiate abstract class GradientMaterial with abstract methods _calculate_k, _calculate_n
+
+tests\test_gradient_material.py:16: TypeError</error></testcase></testsuite></testsuites>
