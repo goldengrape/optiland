@@ -25,6 +25,7 @@ dependencies = [
     "requests",
     "seaborn",
     "typing-extensions>=4.1.0",
+    "icontract",
 ]
 license = { text = "MIT License" }
 
@@ -70,3 +71,6 @@ required-imports = ["from __future__ import annotations"]
 
 [dependency-groups]
 dev = ["pytest"]
+
+[tool.pytest.ini_options]
+junit_xml = "tests/unit-test-results.xml"
