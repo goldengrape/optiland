@@ -73,4 +73,13 @@ required-imports = ["from __future__ import annotations"]
 dev = ["pytest"]
 
 [tool.pytest.ini_options]
-junit_xml = "tests/unit-test-results.xml"
+pythonpath = ["src"]
+testpaths = [
+    "tests",  # 指定测试文件所在的目录
+]
+# addopts 是每次运行 pytest 时自动添加的命令行参数
+addopts = [
+    "--import-mode=importlib",
+    "-ra", 
+    "--junitxml=tests/unit-tests-result.xml",
+]

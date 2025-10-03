@@ -55,15 +55,15 @@ class GradientBoundarySurface(Surface):
         geometry = StandardGeometry(cs, radius=radius_of_curvature, conic=conic)
 
         if material_pre is None:
-            material_pre = IdealMaterial(n=1.0, name="Air")
+            material_pre = IdealMaterial(n=1.0)
         if material_post is None:
-            material_post = IdealMaterial(n=1.5, name="DefaultGlass")
+            material_post = IdealMaterial(n=1.5)
 
         super().__init__(
             geometry=geometry,
             material_pre=material_pre,
             material_post=material_post,
-            aperture=semi_diameter,
+            aperture=semi_diameter * 2 if semi_diameter is not None else None,
             **kwargs,
         )
         self.thickness = thickness

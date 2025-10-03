@@ -51,7 +51,7 @@ def test_gradient_boundary_surface_specific_instantiation():
 
     # Check surface attributes
     assert gbs.thickness == thickness
-    assert gbs.aperture.semi_diameter == semi_diameter
+    assert gbs.aperture.r_max == semi_diameter
 
     # Check materials
     assert gbs.material_pre == material_pre

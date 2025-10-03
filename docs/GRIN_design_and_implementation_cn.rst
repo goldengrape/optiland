@@ -31,7 +31,7 @@ Optiland GRIN 功能综合审核与实现指导报告
 2.1. DP1: ``GradientBoundarySurface`` (几何域)
 ====================================================
 
-* **职责**: 明确。此类仅作为光线追踪引擎的“标记”，用于识别 GRIN 介质的入口，其几何属性完全继承自 ``StandardSurface``。
+* **职责**: 此类作为一个标准表面（带有 `StandardGeometry`）的简化构造函数，旨在用作 GRIN 介质的边界。它作为光线追踪引擎的“标记”，用于识别 GRIN 介质的入口。
 
 * **位置**: ``optiland/surfaces/gradient_surface.py``
 
@@ -41,16 +41,69 @@ Optiland GRIN 功能综合审核与实现指导报告
 
     """定义标记梯度折射率介质边界的表面。"""
 
-    from optiland.surfaces.standard_surface import StandardSurface
+    import optiland.backend as be
+    from optiland.coordinate_system import CoordinateSystem
+    from optiland.geometries.standard import StandardGeometry
+    from optiland.materials import IdealMaterial
+    from optiland.surfaces.standard_surface import Surface
 
-    class GradientBoundarySurface(StandardSurface):
-        """
-        一个用于标记梯度折射率 (GRIN) 介质入口的表面。
 
-        该表面在几何上与 StandardSurface 无异，其主要作用是在光线追踪引擎中
-        触发特殊的传播模型。它本身不包含任何梯度折射率的物理信息。
+    class GradientBoundarySurface(Surface):
         """
-        pass
+        一个标记梯度折射率 (GRIN) 介质入口的表面。
+
+        此类作为一个标准表面（带有 `StandardGeometry`）的简化构造函数，
+        旨在用作 GRIN 介质的边界。
+
+        在几何上，该表面与一个标准的球面/圆锥面相同。
+        它的主要作用是作为一个独特的类型，可以在光线追踪引擎中触发特殊的传播模型。
+        它本身不包含任何关于梯度折射率的物理信息。
+        """
+
+        def __init__(
+            self,
+            radius_of_curvature=be.inf,
+            thickness=0.0,
+            semi_diameter=None,
+            conic=0.0,
+            material_pre=None,
+            material_post=None,
+            **kwargs,
+        ):
+            """
+            初始化一个 GradientBoundarySurface。
+
+            参数:
+                radius_of_curvature (float, optional): 曲率半径。
+                    默认为无穷大（平面）。
+                thickness (float, optional): 表面后材料的厚度。
+                    默认为 0.0。
+                semi_diameter (float, optional): 表面的半直径，
+                    用于光圈裁剪。默认为 None。
+                conic (float, optional): 圆锥常数。默认为 0.0。
+                material_pre (BaseMaterial, optional): 表面前的材料。
+                    默认为理想空气 (n=1.0)。
+                material_post (BaseMaterial, optional): 表面后的材料。
+                    默认为默认玻璃 (n=1.5)。这通常会被追踪引擎
+                    替换为 GradientMaterial。
+                **kwargs: 传递给父类 `Surface` 构造函数的额外关键字参数。
+            """
+            cs = CoordinateSystem()  # 假设一个简单的、非偏心系统
+            geometry = StandardGeometry(cs, radius=radius_of_curvature, conic=conic)
+
+            if material_pre is None:
+                material_pre = IdealMaterial(n=1.0)
+            if material_post is None:
+                material_post = IdealMaterial(n=1.5)
+
+            super().__init__(
+                geometry=geometry,
+                material_pre=material_pre,
+                material_post=material_post,
+                aperture=semi_diameter * 2 if semi_diameter is not None else None,
+                **kwargs,
+            )
+            self.thickness = thickness
 
 ====================================================
 2.2. DP2: ``GradientMaterial`` (物理属性域)
