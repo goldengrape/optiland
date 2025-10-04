@@ -1,18 +1,1 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.230" timestamp="2025-10-03T15:26:19.765920-07:00" hostname="glaptop-16"><testcase classname="" name="tests.test_gradient_propagation" time="0.000"><error message="collection failure">..\..\miniconda3\envs\optiland\Lib\site-packages\_pytest\python.py:498: in importtestmodule
-    mod = import_path(
-..\..\miniconda3\envs\optiland\Lib\site-packages\_pytest\pathlib.py:549: in import_path
-    mod = _import_module_using_spec(
-..\..\miniconda3\envs\optiland\Lib\site-packages\_pytest\pathlib.py:725: in _import_module_using_spec
-    spec.loader.exec_module(mod)  # type: ignore[union-attr]
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-..\..\miniconda3\envs\optiland\Lib\site-packages\_pytest\assertion\rewrite.py:177: in exec_module
-    source_stat, co = _rewrite_test(fn, self.config)
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-..\..\miniconda3\envs\optiland\Lib\site-packages\_pytest\assertion\rewrite.py:357: in _rewrite_test
-    tree = ast.parse(source, filename=strfn)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-..\..\miniconda3\envs\optiland\Lib\ast.py:50: in parse
-    return compile(source, filename, mode, flags,
-E     File "C:\Users\golde\code\optiland\tests\test_gradient_propagation.py", line 20
-E       exit_surface.geometry.cs.z = 10.0
-E   IndentationError: unexpected indent</error></testcase></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="1" time="3.694" timestamp="2025-10-03T18:03:39.335923-07:00" hostname="glaptop-16"><testcase classname="tests.test_gradient_propagation" name="test_propagate_through_radial_grin_lens" time="0.168" /></testsuite></testsuites>
