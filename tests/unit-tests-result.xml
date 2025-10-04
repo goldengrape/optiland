@@ -1,133 +1,18 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.168" timestamp="2025-10-03T15:20:05.193980-07:00" hostname="glaptop-16"><testcase classname="tests.test_gradient_propagation" name="test_propagate_through_radial_grin_lens" time="0.006"><failure message="AttributeError: 'GradientBoundarySurface' object has no attribute 'intersect'">def test_propagate_through_radial_grin_lens():
-        """Test that a ray is focused by a simple radial GRIN lens."""
-        # 1. Define a focusing radial GRIN material (n decreases with r)
-        grin_material = GradientMaterial(n0=1.5, nr2=-0.01)
-    
-        # 2. Define entry and exit surfaces (a GRIN slab of 10mm thickness)
-        entry_surface = GradientBoundarySurface(thickness=10.0)
-        exit_surface = GradientBoundarySurface(thickness=0.0) # Exit surface is at z=10 relative to entry
-        exit_surface.z = 10.0
-    
-        # 3. Create a single ray parallel to the z-axis, offset in y
-        initial_y = 1.0
-        rays_in = RealRays(
-            x=be.array([0.0]),
-            y=be.array([initial_y]),
-            z=be.array([0.0]),
-            L=be.array([0.0]),
-            M=be.array([0.0]),
-            N=be.array([1.0]),
-            intensity=be.array([1.0]),
-            wavelength=be.array([0.55])
-        )
-    
-        # 4. Call the propagation function
-&gt;       rays_out = propagate_through_gradient(
-            rays_in=rays_in,
-            grin_material=grin_material,
-            exit_surface=exit_surface,
-            step_size=0.1,
-            max_steps=1000
-        )
-
-tests\test_gradient_propagation.py:36: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:833: in wrapper
-    result = func(*args, **kwargs)
-             ^^^^^^^^^^^^^^^^^^^^^
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000021F045F6450&gt;
-grin_material = GradientMaterial(n0=1.5, nr2=-0.01, nr4=0.0, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
-exit_surface = &lt;optiland.surfaces.gradient_surface.GradientBoundarySurface object at 0x0000021F02959C90&gt;
-step_size = 0.1, max_steps = 1000
-
-    @icontract.require(lambda rays_in: isinstance(rays_in, RealRays))
-    @icontract.require(lambda step_size: step_size &gt; 0)
-    @icontract.require(lambda max_steps: max_steps &gt; 0)
-    def propagate_through_gradient(
-        rays_in: RealRays,
-        grin_material: "GradientMaterial",
-        exit_surface: "BaseSurface",
-        step_size: float = 0.1,
-        max_steps: int = 10000
-    ) -&gt; RealRays:
-        """
-        Traces a batch of rays through a GRIN medium until they intersect the exit surface.
-    
-        Args:
-            rays_in: The initial state of the rays (positions and directions).
-            grin_material: The physical model of the GRIN medium.
-            exit_surface: The geometric surface marking the end of the GRIN medium.
-            step_size: The step size for RK4 integration (in mm).
-            max_steps: The maximum number of steps to prevent infinite loops.
-    
-        Returns:
-            The final state of the rays at the exit surface.
-        """
-        # Extract initial positions and directions
-        r = be.stack([rays_in.x, rays_in.y, rays_in.z], axis=-1)
-        d = be.stack([rays_in.L, rays_in.M, rays_in.N], axis=-1)
-    
-        # Initialize optical momentum k = n * d
-        n_start, _ = grin_material.get_index_and_gradient(r[:, 0], r[:, 1], r[:, 2])
-        k = n_start[:, be.newaxis] * d
-    
-        # Keep track of optical path difference for each ray
-        opd = be.copy(rays_in.opd)
-    
-        num_rays = len(rays_in.x)
-        active_rays = be.ones(num_rays, dtype=bool)
-    
-        # Store final state of the rays that have exited
-        final_r = be.copy(r)
-        final_k = be.copy(k)
-    
-        def derivatives(current_r: be.ndarray, current_k: be.ndarray) -&gt; tuple:
-            n, grad_n = grin_material.get_index_and_gradient(current_r[:, 0], current_r[:, 1], current_r[:, 2])
-            # Add a small epsilon to n to avoid division by zero
-            dr_ds = current_k / (n[:, be.newaxis] + 1e-9)
-            dk_ds = grad_n
-            return dr_ds, dk_ds
-    
-        for i in range(max_steps):
-            if not be.any(active_rays):
-                break
-    
-            r_active = r[active_rays]
-            k_active = k[active_rays]
-    
-            n_current = grin_material.get_index(r_active[:, 0], r_active[:, 1], r_active[:, 2])
-    
-            # RK4 integration step for active rays
-            r1, k1 = derivatives(r_active, k_active)
-            r2, k2 = derivatives(r_active + 0.5 * step_size * r1, k_active + 0.5 * step_size * k1)
-            r3, k3 = derivatives(r_active + 0.5 * step_size * r2, k_active + 0.5 * step_size * k2)
-            r4, k4 = derivatives(r_active + step_size * r3, k_active + step_size * k3)
-    
-            r_next_active = r_active + (step_size / 6.0) * (r1 + 2*r2 + 2*r3 + r4)
-            k_next_active = k_active + (step_size / 6.0) * (k1 + 2*k2 + 2*k3 + k4)
-    
-            # Accumulate Optical Path Difference (OPD)
-            n_next = grin_material.get_index(r_next_active[:, 0], r_next_active[:, 1], r_next_active[:, 2])
-            opd[active_rays] += 0.5 * (n_current + n_next) * step_size
-    
-            # Check for intersection with the exit surface
-            segment_vec = r_next_active - r_active
-            segment_len = be.linalg.norm(segment_vec, axis=-1)
-    
-            # Create a RealRays object for the current segment
-            # Note: This is a bit inefficient, but exit_surface.intersect expects RealRays
-            segment_rays = RealRays(
-                x=r_active[:, 0], y=r_active[:, 1], z=r_active[:, 2],
-                L=segment_vec[:, 0] / (segment_len[:, be.newaxis] + 1e-9),
-                M=segment_vec[:, 1] / (segment_len[:, be.newaxis] + 1e-9),
-                N=segment_vec[:, 2] / (segment_len[:, be.newaxis] + 1e-9),
-                intensity=be.ones_like(segment_len), wavelength=rays_in.w[active_rays]
-            )
-    
-&gt;           distance_to_intersect = exit_surface.intersect(segment_rays)
-                                    ^^^^^^^^^^^^^^^^^^^^^^
-E           AttributeError: 'GradientBoundarySurface' object has no attribute 'intersect'
-
-optiland\interactions\gradient_propagation.py:98: AttributeError</failure></testcase></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.230" timestamp="2025-10-03T15:26:19.765920-07:00" hostname="glaptop-16"><testcase classname="" name="tests.test_gradient_propagation" time="0.000"><error message="collection failure">..\..\miniconda3\envs\optiland\Lib\site-packages\_pytest\python.py:498: in importtestmodule
+    mod = import_path(
+..\..\miniconda3\envs\optiland\Lib\site-packages\_pytest\pathlib.py:549: in import_path
+    mod = _import_module_using_spec(
+..\..\miniconda3\envs\optiland\Lib\site-packages\_pytest\pathlib.py:725: in _import_module_using_spec
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\miniconda3\envs\optiland\Lib\site-packages\_pytest\assertion\rewrite.py:177: in exec_module
+    source_stat, co = _rewrite_test(fn, self.config)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\miniconda3\envs\optiland\Lib\site-packages\_pytest\assertion\rewrite.py:357: in _rewrite_test
+    tree = ast.parse(source, filename=strfn)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\miniconda3\envs\optiland\Lib\ast.py:50: in parse
+    return compile(source, filename, mode, flags,
+E     File "C:\Users\golde\code\optiland\tests\test_gradient_propagation.py", line 20
+E       exit_surface.geometry.cs.z = 10.0
+E   IndentationError: unexpected indent</error></testcase></testsuite></testsuites>
