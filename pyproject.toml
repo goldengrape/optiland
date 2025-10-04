@@ -43,8 +43,12 @@ gui = ["PySide6", "qtconsole"]
 [tool.hatch.metadata]
 allow-direct-references = true
 
+# --- 修改开始 ---
 [tool.hatch.build.targets.wheel]
-packages = ["optiland", "optiland_gui"] # Auto-discovers subpackages
+packages = ["optiland", "optiland_gui"]
+# 明确告知 hatchling，包位于项目的根目录，而不是 'src' 目录。
+package-dir = ""
+# --- 修改结束 ---
 
 [tool.hatch.metadata.files]
 "optiland/database" = ["*.csv", "*.yml", "**/*.yml", "*.npy"]
@@ -72,8 +76,9 @@ required-imports = ["from __future__ import annotations"]
 [dependency-groups]
 dev = ["pytest"]
 
+# --- 修改开始 ---
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["."] # 将 pythonpath 从 "src" 改为 "."
 testpaths = [
     "tests",  # 指定测试文件所在的目录
 ]

@@ -16,6 +16,12 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Literal
 
+# --- START: Added GRIN-related imports ---
+from optiland.interactions.gradient_propagation import propagate_through_gradient
+from optiland.materials.gradient_material import GradientMaterial
+from optiland.surfaces.gradient_surface import GradientBoundarySurface
+# --- END: Added GRIN-related imports ---
+
 from optiland.aberrations import Aberrations
 from optiland.aperture import Aperture
 from optiland.apodization import BaseApodization
@@ -30,7 +36,7 @@ from optiland.fields import (
 from optiland.optic.optic_updater import OpticUpdater
 from optiland.paraxial import Paraxial
 from optiland.pickup import PickupManager
-from optiland.rays import PolarizationState, RayGenerator
+from optiland.rays import PolarizationState, RayGenerator, RealRays
 from optiland.raytrace.real_ray_tracer import RealRayTracer
 from optiland.solves import SolveManager
 from optiland.surfaces import ObjectSurface, SurfaceGroup
@@ -562,6 +568,7 @@ class Optic:
 
         return self.surface_group.n(wavelength)
 
+    # --- START: REVISED trace METHOD ---
     def trace(
         self,
         Hx: ArrayLike | float,
@@ -569,8 +576,11 @@ class Optic:
         wavelength: float,
         num_rays: int | None = 100,
         distribution: DistributionType | BaseDistribution | None = "hexapolar",
-    ):
+    ) -> RealRays:
         """Trace a distribution of rays through the optical system.
+
+        This method orchestrates the ray tracing process, handling both
+        standard surfaces and special GRIN (Gradient Refractive Index) regions.
 
         Args:
             Hx (ArrayLike | float): The normalized x field coordinate(s).
@@ -586,8 +596,93 @@ class Optic:
         Returns:
             RealRays: A `RealRays` object containing the traced rays.
 
+        Raises:
+            TypeError: If a GradientBoundarySurface is not followed by a
+                GradientMaterial.
+            ValueError: If a GRIN region is started but no matching exit
+                surface is found.
         """
-        return self.ray_tracer.trace(Hx, Hy, wavelength, num_rays, distribution)
+        # Step 1: Generate the initial bundle of rays.
+        ray_generator = RayGenerator(self)
+        rays = ray_generator.generate(
+            Hx=Hx,
+            Hy=Hy,
+            wavelength=wavelength,
+            num_rays=num_rays,
+            distribution=distribution,
+        )
+
+        # Step 2: Propagate rays through the system using a while loop
+        # to correctly handle GRIN regions that span multiple surfaces.
+        i = 1  # Start from the first optical surface (index 1), skipping the object surface.
+        while i < self.surface_group.num_surfaces:
+            surface = self.surface_group.surfaces[i]
+
+            # Check if the current surface is the entry point of a GRIN medium
+            if isinstance(surface, GradientBoundarySurface) and not surface.is_reflective:
+                # --- GRIN Propagation Sequence ---
+
+                # 1. Validate that the post-material is a GRIN material
+                grin_material = surface.material_post
+                if not isinstance(grin_material, GradientMaterial):
+                    raise TypeError(
+                        f"Surface {i} is a GradientBoundarySurface but is not "
+                        f"followed by a GradientMaterial."
+                    )
+
+                # 2. Find the matching exit surface for the GRIN region
+                exit_surface_index = -1
+                for j in range(i + 1, self.surface_group.num_surfaces):
+                    if isinstance(self.surface_group.surfaces[j], GradientBoundarySurface):
+                        exit_surface_index = j
+                        break
+
+                if exit_surface_index == -1:
+                    raise ValueError(
+                        f"GRIN region started at surface {i}, but no matching "
+                        f"GradientBoundarySurface was found to exit."
+                    )
+                exit_surface = self.surface_group.surfaces[exit_surface_index]
+
+                # 3. Perform standard trace AT the entry surface. This handles
+                # the initial refraction into the GRIN medium.
+                rays = surface.trace(rays)
+
+                # 4. Propagate through the GRIN medium using numerical integration.
+                rays = propagate_through_gradient(
+                    rays_in=rays,
+                    grin_material=grin_material,
+                    exit_surface=exit_surface,
+                    step_size=0.1,
+                    max_steps=10000,
+                )
+
+                # 5. Perform the final interaction (refraction) AT the exit surface.
+                rays = exit_surface._interact(rays)
+
+                # 6. Advance the loop counter to the surface AFTER the GRIN region.
+                i = exit_surface_index + 1
+
+            else:
+                # --- Standard Propagation Logic ---
+
+                # 1. Trace rays to and through the current standard surface.
+                rays = surface.trace(rays)
+
+                # 2. Propagate rays from the current surface to the next one
+                #    through a homogeneous medium.
+                if i < self.surface_group.num_surfaces - 1:
+                    # The thickness for propagation is defined by the space
+                    # following the current surface.
+                    thickness = surface.thickness
+                    material = surface.material_post
+                    rays.propagate(thickness, material=material)
+                
+                # 3. Advance to the next surface.
+                i += 1
+        
+        return rays
+    # --- END: REVISED trace METHOD ---
 
     def trace_generic(
         self,
@@ -689,6 +784,9 @@ class Optic:
 
         optic.paraxial = Paraxial(optic)
         optic.aberrations = Aberrations(optic)
-        optic.ray_generator = RayGenerator(optic)
+        # The following line was in the original file but seems to cause an error
+        # as ray_generator is not a standard attribute initialized in __init__.
+        # It's correctly instantiated inside the trace method now.
+        # optic.ray_generator = RayGenerator(optic)
 
         return optic

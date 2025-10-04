@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import icontract
-import numpy as np
 
 from optiland.materials.base import BaseMaterial
 import optiland.backend as be
@@ -41,7 +40,19 @@ class GradientMaterial(BaseMaterial):
         # thus satisfying the base class's requirement for these attributes to exist.
         object.__setattr__(self, '_n_cache', {})
         object.__setattr__(self, '_k_cache', {})
+    
+    # --- REVISION: Added for interface compatibility ---
+    def n(self, wavelength: float) -> float:
+        """
+        Returns the base refractive index n0 to conform to the BaseMaterial interface.
 
+        This allows standard components like Surface._interact to correctly handle
+        the initial refraction at the GRIN boundary without needing to know the
+        ray's specific position. The position-dependent index is handled by
+        the specialized `propagate_through_gradient` function.
+        """
+        return self.n0
+    
     def _calculate_n(self, wavelength, **kwargs):
         """
         Calculates the refractive index.
@@ -60,8 +71,9 @@ class GradientMaterial(BaseMaterial):
         """
         return 0.0
 
+    # This code does not support dispersion yet, so the wavelength argument is ignored in the following methods.
     @icontract.require(lambda x, y, z: all(isinstance(v, (int, float) + ndarray) for v in [x, y, z]))
-    def get_index(self, x: np.ndarray, y: np.ndarray, z: np.ndarray, wavelength: float = None) -> np.ndarray:
+    def get_index(self, x: be.ndarray, y: be.ndarray, z: be.ndarray, wavelength: float = None) -> be.ndarray:
         """
         Calculates the refractive index n for a vector of coordinates (x, y, z). This is a pure function.
         """
@@ -76,8 +88,8 @@ class GradientMaterial(BaseMaterial):
         return n
 
     @icontract.require(lambda x, y, z: all(isinstance(v, (int, float) + ndarray) for v in [x, y, z]))
-    @icontract.ensure(lambda result, x: result.shape == (len(x), 3) if hasattr(x, '__len__') else result.shape == (3,))
-    def get_gradient(self, x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
+    @icontract.ensure(lambda result, x: result.shape == (len(x), 3) if hasattr(x, '__len__') and len(x.shape) > 0 else result.shape == (3,))
+    def get_gradient(self, x: be.ndarray, y: be.ndarray, z: be.ndarray, wavelength: float = None) -> be.ndarray:
         """
         Calculates the gradient of the refractive index ∇n = [∂n/∂x, ∂n/∂y, ∂n/∂z]
         for a vector of coordinates (x, y, z). This is a pure function.
@@ -89,7 +101,7 @@ class GradientMaterial(BaseMaterial):
         dn_dz = self.nz1 + 2 * self.nz2 * z + 3 * self.nz3 * z**2
         return be.stack([dn_dx, dn_dy, dn_dz], axis=-1)
 
-    def get_index_and_gradient(self, x: np.ndarray, y: np.ndarray, z: np.ndarray, wavelength: float = None) -> Tuple[np.ndarray, np.ndarray]:
+    def get_index_and_gradient(self, x: be.ndarray, y: be.ndarray, z: be.ndarray, wavelength: float = None) -> Tuple[be.ndarray, be.ndarray]:
         """
         Calculates both the refractive index n and its gradient ∇n in a single call
         for performance optimization, for a vector of coordinates.
