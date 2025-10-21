@@ -1,5 +1,7 @@
 """Defines a gradient-index material and the calculation of its physical properties."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Tuple
 

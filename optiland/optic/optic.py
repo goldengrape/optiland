@@ -603,13 +603,24 @@ class Optic:
                 surface is found.
         """
         # Step 1: Generate the initial bundle of rays.
+        from optiland.distribution import create_distribution
+        if isinstance(distribution, str):
+            dist_obj = create_distribution(distribution)
+        else:
+            dist_obj = distribution
+
+        # If num_rays is not provided or explicitly None, use the method's default.
+        rays_to_generate = num_rays if num_rays is not None else 100
+        dist_obj.generate_points(rays_to_generate)
+        Px, Py = dist_obj.x, dist_obj.y
+
         ray_generator = RayGenerator(self)
-        rays = ray_generator.generate(
+        rays = ray_generator.generate_rays(
             Hx=Hx,
             Hy=Hy,
+            Px=Px,
+            Py=Py,
             wavelength=wavelength,
-            num_rays=num_rays,
-            distribution=distribution,
         )
 
         # Step 2: Propagate rays through the system using a while loop
