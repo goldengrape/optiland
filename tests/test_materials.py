@@ -76,6 +76,7 @@ class TestIdealMaterial:
             "index": 1.5,
             "absorp": 0.2,
             "type": materials.IdealMaterial.__name__,
+            "propagation_model": {"class": "HomogeneousPropagation"},
         }
 
     def test_ideal_from_dict(self, set_test_backend):
@@ -306,6 +307,7 @@ class TestMaterialFile:
         assert material.to_dict() == {
             "filename": filename,
             "type": materials.MaterialFile.__name__,
+            "propagation_model": {"class": "HomogeneousPropagation"},
         }
 
     def test_from_dict(self, set_test_backend):
@@ -384,6 +386,7 @@ class TestMaterial:
             "robust_search": True,
             "min_wavelength": None,
             "max_wavelength": None,
+            "propagation_model": {"class": "HomogeneousPropagation"},
         }
 
     def test_from_dict(self, set_test_backend):
@@ -417,7 +420,12 @@ def test_coefficients(set_test_backend, abbe_material):
 
 def test_abbe_to_dict(set_test_backend, abbe_material):
     abbe_dict = abbe_material.to_dict()
-    assert abbe_dict == {"type": "AbbeMaterial", "index": 1.5, "abbe": 50}
+    assert abbe_dict == {
+        "type": "AbbeMaterial",
+        "index": 1.5,
+        "abbe": 50.0,
+        "propagation_model": {"class": "HomogeneousPropagation"},
+    }
 
 
 def test_abbe_from_dict(set_test_backend):
@@ -496,11 +504,11 @@ def test_find_closest_glass(set_test_backend):
 
 
 def test_plot_nk():
-    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
 
     mat = materials.Material("BK7")
     fig, axes = materials.plot_nk(mat, wavelength_range=(0.1, 15))
     assert fig is not None
-    assert isinstance(fig, plt.Figure)
-    assert isinstance(axes, list)
+    assert isinstance(fig, Figure)
+    assert isinstance(axes, tuple)
     assert len(axes) == 2

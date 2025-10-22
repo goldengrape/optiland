@@ -112,6 +112,17 @@ def get_precision() -> torch.dtype:
     return _config.get_precision()
 
 
+def get_complex_precision() -> torch.dtype:
+    """Returns the complex dtype corresponding to the current precision."""
+    prec = get_precision()
+    if prec == torch.float32:
+        return torch.complex64
+    elif prec == torch.float64:
+        return torch.complex128
+    else:
+        raise ValueError("Unsupported precision for complex dtype.")
+
+
 # Global gradient control
 grad_mode: GradMode = _config.grad_mode
 
@@ -155,10 +166,11 @@ def ones(shape: Sequence[int]) -> Tensor:
     )
 
 
-def full(shape: Sequence[int], fill_value: float) -> Tensor:
+def full(shape: Sequence[int], fill_value: float | Tensor) -> Tensor:
+    val = fill_value.item() if isinstance(fill_value, torch.Tensor) else fill_value
     return torch.full(
         shape,
-        fill_value,
+        val,
         device=get_device(),
         dtype=get_precision(),
         requires_grad=grad_mode.requires_grad,
@@ -233,6 +245,30 @@ def full_like(x: ArrayLike, fill_value: float | Tensor) -> Tensor:
 def load(filename: str) -> Tensor:
     data = np.load(filename)
     return array(data)
+
+
+def to_tensor(
+    data: ArrayLike, device: str | torch.device | None = None
+) -> torch.Tensor:
+    """Converts data to a PyTorch tensor with the backend's precision.
+
+    Args:
+        data (ArrayLike): The data to convert.
+        device (str or torch.device, optional): The device to move the tensor to.
+            Defaults to None.
+
+    Returns:
+        torch.Tensor: The converted tensor.
+    """
+    current_device = device or get_device()
+    current_precision = get_precision()
+
+    if not isinstance(data, torch.Tensor):
+        # If not a tensor, create one with the correct dtype and device
+        return torch.tensor(data, device=current_device, dtype=current_precision)
+    else:
+        # If it is a tensor, move it and cast to correct dtype
+        return data.to(device=current_device, dtype=current_precision)
 
 
 # --------------------------
@@ -333,6 +369,22 @@ def random_uniform(
     gen_args = {"generator": generator} if generator else {}
     return torch.empty(size, device=get_device(), dtype=get_precision()).uniform_(
         low, high, **gen_args
+    )
+
+
+def rand(*size: int) -> Tensor:
+    """
+    Returns a tensor filled with random numbers from a uniform distribution
+    on the interval [0, 1).
+    If no size is provided, returns a single random number as a 1-element tensor.
+    """
+    if not size:
+        size = (1,)
+    return torch.rand(
+        size,
+        device=get_device(),
+        dtype=get_precision(),
+        requires_grad=grad_mode.requires_grad,
     )
 
 
@@ -572,8 +624,27 @@ def batched_chain_matmul3(a: Tensor, b: Tensor, c: Tensor) -> Tensor:
     return torch.matmul(torch.matmul(a.to(dtype), b.to(dtype)), c.to(dtype))
 
 
-def cross(a: Tensor, b: Tensor) -> Tensor:
-    return torch.linalg.cross(a, b)
+def cross(
+    a: Tensor,
+    b: Tensor,
+    axisa: int = -1,
+    axisb: int = -1,
+    axisc: int = -1,
+    axis: int | None = None,
+) -> Tensor:
+    """A NumPy-compatible cross product for PyTorch."""
+    if axis is not None:
+        axisa, axisb, axisc = (axis,) * 3
+
+    # Move the specified axes to the end for `torch.linalg.cross`
+    a_moved = torch.movedim(a, axisa, -1)
+    b_moved = torch.movedim(b, axisb, -1)
+
+    # Compute the cross product along the last dimension
+    c = torch.linalg.cross(a_moved, b_moved, dim=-1)
+
+    # Move the result axis to the specified position
+    return torch.movedim(c, -1, axisc)
 
 
 def matrix_vector_multiply_and_squeeze(p: Tensor, E: Tensor) -> Tensor:
@@ -760,6 +831,7 @@ __all__ = [
     "set_precision",
     "get_precision",
     "grad_mode",
+    "to_tensor",
     # Creation
     "array",
     "zeros",

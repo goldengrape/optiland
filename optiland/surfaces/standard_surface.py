@@ -132,7 +132,7 @@ class Surface:
             t = self.geometry.distance(rays)
 
             # propagate the rays a distance t through material
-            rays.propagate(t, self.material_pre)
+            self.material_pre.propagation_model.propagate(rays, t)
 
             # update OPD
             rays.opd = rays.opd + be.abs(t * self.material_pre.n(rays.w))
@@ -227,6 +227,7 @@ class Surface:
 
         return {
             "type": self.__class__.__name__,
+            "thickness": self.thickness,
             "geometry": self.geometry.to_dict(),
             "material_pre": self.material_pre.to_dict(),
             "material_post": self.material_post.to_dict(),
@@ -293,7 +294,7 @@ class Surface:
             )
 
         surface_class = cls._registry.get(surface_type, cls)
-        return surface_class(
+        surface = surface_class(
             geometry=geometry,
             material_pre=material_pre,
             material_post=material_post,
@@ -302,3 +303,5 @@ class Surface:
             comment=data.get("comment", ""),
             interaction_model=interaction_model,
         )
+        surface.thickness = data.get("thickness", 0.0)
+        return surface

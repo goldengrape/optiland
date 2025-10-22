@@ -12,12 +12,17 @@ if TYPE_CHECKING:
     from optiland.coatings import BaseCoating
     from optiland.physical_apertures.base import BaseAperture
 
+    BEArray = Tensor | NDArray
+    ScalarOrArray = float | Tensor | NDArray
+
+
 if version_info >= (3, 11):
     from typing import Unpack
 else:
     from typing_extensions import Unpack
 
 __all__ = [
+    "BEArrayT",
     "BEArray",
     "DistributionType",
     "ApertureType",
@@ -27,15 +32,15 @@ __all__ = [
     "ReferenceRay",
     "WavelengthUnit",
     "Wavelengths",
-    "ScalarOrArray",
+    "ScalarOrArrayT",
     "SurfaceType",
     "SurfaceParameters",
     "Unpack",
     "ZernikeType",
 ]
 
-BEArray = TypeVar("BEArray", NDArray, "Tensor", Union[NDArray, "Tensor"])
-ScalarOrArray = TypeVar(
+BEArrayT = TypeVar("BEArrayT", NDArray, "Tensor", Union[NDArray, "Tensor"])
+ScalarOrArrayT = TypeVar(
     "ScalarOrArray", float, NDArray, "Tensor", Union[NDArray, "Tensor"]
 )
 
@@ -72,6 +77,7 @@ SurfaceType = Literal[
     "toroidal",
     "zernike",
     "grating",
+    "nurbs",
 ]
 
 
@@ -96,6 +102,18 @@ class SurfaceParameters(TypedDict, total=False):
     grating_order: int
     grating_period: float
     groove_orientation_angle: float
+    control_points: list[list[list[float]]]
+    weights: list[float]
+    u_knots: list[float]
+    v_knots: list[float]
+    nurbs_norm_x: float
+    nurbs_norm_y: float
+    nurbs_x_center: float
+    nurbs_y_center: float
+    u_degree: int
+    v_degree: int
+    n_points_u: int
+    n_points_v: int
 
     # Coordinate system parameters
     thickness: float
