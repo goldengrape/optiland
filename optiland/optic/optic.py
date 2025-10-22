@@ -16,12 +16,6 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Literal
 
-# --- START: Added GRIN-related imports ---
-from optiland.interactions.gradient_propagation import propagate_through_gradient
-from optiland.materials.gradient_material import GradientMaterial
-from optiland.surfaces.gradient_surface import GradientBoundarySurface
-# --- END: Added GRIN-related imports ---
-
 from optiland.aberrations import Aberrations
 from optiland.aperture import Aperture
 from optiland.apodization import BaseApodization
@@ -36,7 +30,7 @@ from optiland.fields import (
 from optiland.optic.optic_updater import OpticUpdater
 from optiland.paraxial import Paraxial
 from optiland.pickup import PickupManager
-from optiland.rays import PolarizationState, RayGenerator, RealRays
+from optiland.rays import PolarizationState
 from optiland.raytrace.real_ray_tracer import RealRayTracer
 from optiland.solves import SolveManager
 from optiland.surfaces import ObjectSurface, SurfaceGroup
@@ -51,12 +45,13 @@ from optiland.wavelength import WavelengthGroup
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
-    from numpy.typing import ArrayLike
 
     from optiland._types import (
+        BEArray,
         DistributionType,
         FieldType,
         ReferenceRay,
+        ScalarOrArray,
         SurfaceParameters,
         SurfaceType,
         Unpack,
@@ -64,6 +59,7 @@ if TYPE_CHECKING:
     )
     from optiland.distribution import BaseDistribution
     from optiland.materials.base import BaseMaterial
+    from optiland.rays import RealRays
     from optiland.surfaces.standard_surface import Surface
 
 
@@ -116,7 +112,7 @@ class Optic:
         Initializes an Optic instance.
 
         Args:
-            name (str, optional): An optional name for the optical system.
+            name: An optional name for the optical system.
                 Defaults to None.
         """
         self.name = name
@@ -252,12 +248,12 @@ class Optic:
         """Add a field to the optical system.
 
         Args:
-            y (float): The y-coordinate of the field.
-            x (float, optional): The x-coordinate of the field.
+            y: The y-coordinate of the field.
+            x: The x-coordinate of the field.
                 Defaults to 0.0.
-            vx (float, optional): The x-component of the field's vignetting
+            vx: The x-component of the field's vignetting
                 factor. Defaults to 0.0.
-            vy (float, optional): The y-component of the field's vignetting
+            vy: The y-component of the field's vignetting
                 factor. Defaults to 0.0.
 
         """
@@ -547,7 +543,7 @@ class Optic:
         viewer = LensInfoViewer(self)
         viewer.view()
 
-    def n(self, wavelength: float | Literal["primary"] = "primary"):
+    def n(self, wavelength: float | Literal["primary"] = "primary") -> BEArray:
         """Get the refractive indices of materials at a given wavelength.
 
         This method calculates the refractive indices for each space between
@@ -568,27 +564,23 @@ class Optic:
 
         return self.surface_group.n(wavelength)
 
-    # --- START: REVISED trace METHOD ---
     def trace(
         self,
-        Hx: ArrayLike | float,
-        Hy: ArrayLike | float,
+        Hx: ScalarOrArray,
+        Hy: ScalarOrArray,
         wavelength: float,
         num_rays: int | None = 100,
         distribution: DistributionType | BaseDistribution | None = "hexapolar",
     ) -> RealRays:
         """Trace a distribution of rays through the optical system.
 
-        This method orchestrates the ray tracing process, handling both
-        standard surfaces and special GRIN (Gradient Refractive Index) regions.
-
         Args:
-            Hx (ArrayLike | float): The normalized x field coordinate(s).
-            Hy (ArrayLike | float): The normalized y field coordinate(s).
+            Hx: The normalized x field coordinate(s).
+            Hy: The normalized y field coordinate(s).
             wavelength (float): The wavelength of the rays in microns.
-            num_rays (int, optional): The number of rays to trace.
+            num_rays: The number of rays to trace.
                 Defaults to 100.
-            distribution (DistributionType | BaseDistribution, optional):
+            distribution:
                 The distribution of rays. Can be a string identifier (e.g.,
                 'hexapolar', 'uniform') or a `BaseDistribution` object.
                 Defaults to 'hexapolar'.
@@ -596,120 +588,24 @@ class Optic:
         Returns:
             RealRays: A `RealRays` object containing the traced rays.
 
-        Raises:
-            TypeError: If a GradientBoundarySurface is not followed by a
-                GradientMaterial.
-            ValueError: If a GRIN region is started but no matching exit
-                surface is found.
         """
-        # Step 1: Generate the initial bundle of rays.
-        from optiland.distribution import create_distribution
-        if isinstance(distribution, str):
-            dist_obj = create_distribution(distribution)
-        else:
-            dist_obj = distribution
-
-        # If num_rays is not provided or explicitly None, use the method's default.
-        rays_to_generate = num_rays if num_rays is not None else 100
-        dist_obj.generate_points(rays_to_generate)
-        Px, Py = dist_obj.x, dist_obj.y
-
-        ray_generator = RayGenerator(self)
-        rays = ray_generator.generate_rays(
-            Hx=Hx,
-            Hy=Hy,
-            Px=Px,
-            Py=Py,
-            wavelength=wavelength,
-        )
-
-        # Step 2: Propagate rays through the system using a while loop
-        # to correctly handle GRIN regions that span multiple surfaces.
-        i = 1  # Start from the first optical surface (index 1), skipping the object surface.
-        while i < self.surface_group.num_surfaces:
-            surface = self.surface_group.surfaces[i]
-
-            # Check if the current surface is the entry point of a GRIN medium
-            if isinstance(surface, GradientBoundarySurface) and not surface.is_reflective:
-                # --- GRIN Propagation Sequence ---
-
-                # 1. Validate that the post-material is a GRIN material
-                grin_material = surface.material_post
-                if not isinstance(grin_material, GradientMaterial):
-                    raise TypeError(
-                        f"Surface {i} is a GradientBoundarySurface but is not "
-                        f"followed by a GradientMaterial."
-                    )
-
-                # 2. Find the matching exit surface for the GRIN region
-                exit_surface_index = -1
-                for j in range(i + 1, self.surface_group.num_surfaces):
-                    if isinstance(self.surface_group.surfaces[j], GradientBoundarySurface):
-                        exit_surface_index = j
-                        break
-
-                if exit_surface_index == -1:
-                    raise ValueError(
-                        f"GRIN region started at surface {i}, but no matching "
-                        f"GradientBoundarySurface was found to exit."
-                    )
-                exit_surface = self.surface_group.surfaces[exit_surface_index]
-
-                # 3. Perform standard trace AT the entry surface. This handles
-                # the initial refraction into the GRIN medium.
-                rays = surface.trace(rays)
-
-                # 4. Propagate through the GRIN medium using numerical integration.
-                rays = propagate_through_gradient(
-                    rays_in=rays,
-                    grin_material=grin_material,
-                    exit_surface=exit_surface,
-                    step_size=0.1,
-                    max_steps=10000,
-                )
-
-                # 5. Perform the final interaction (refraction) AT the exit surface.
-                rays = exit_surface._interact(rays)
-
-                # 6. Advance the loop counter to the surface AFTER the GRIN region.
-                i = exit_surface_index + 1
-
-            else:
-                # --- Standard Propagation Logic ---
-
-                # 1. Trace rays to and through the current standard surface.
-                rays = surface.trace(rays)
-
-                # 2. Propagate rays from the current surface to the next one
-                #    through a homogeneous medium.
-                if i < self.surface_group.num_surfaces - 1:
-                    # The thickness for propagation is defined by the space
-                    # following the current surface.
-                    thickness = surface.thickness
-                    material = surface.material_post
-                    rays.propagate(thickness, material=material)
-                
-                # 3. Advance to the next surface.
-                i += 1
-        
-        return rays
-    # --- END: REVISED trace METHOD ---
+        return self.ray_tracer.trace(Hx, Hy, wavelength, num_rays, distribution)
 
     def trace_generic(
         self,
-        Hx: ArrayLike | float,
-        Hy: ArrayLike | float,
-        Px: ArrayLike | float,
-        Py: ArrayLike | float,
+        Hx: ScalarOrArray,
+        Hy: ScalarOrArray,
+        Px: ScalarOrArray,
+        Py: ScalarOrArray,
         wavelength: float,
     ):
         """Trace generic rays through the optical system.
 
         Args:
-            Hx (ArrayLike | float): The normalized x field coordinate(s).
-            Hy (ArrayLike | float): The normalized y field coordinate(s).
-            Px (ArrayLike | float): The normalized x pupil coordinate(s).
-            Py (ArrayLike | float): The normalized y pupil coordinate(s).
+            Hx: The normalized x field coordinate(s).
+            Hy: The normalized y field coordinate(s).
+            Px: The normalized x pupil coordinate(s).
+            Py: The normalized y pupil coordinate(s).
             wavelength (float): The wavelength of the rays in microns.
 
         Returns:
@@ -719,25 +615,25 @@ class Optic:
         return self.ray_tracer.trace_generic(Hx, Hy, Px, Py, wavelength)
 
     def plot_surface_sag(
-        self, surface_index: int, y_cross_section=0, x_cross_section=0
+        self, surface_index: int, y_cross_section: float = 0, x_cross_section: float = 0
     ):
         """Analyzes and visualizes the sag of a given lens surface.
 
         Args:
-            surface_index (int): The index of the surface to analyze.
-            y_cross_section (float, optional): The y-coordinate for the
+            surface_index: The index of the surface to analyze.
+            y_cross_section: The y-coordinate for the
                 x-sag plot. Defaults to 0.
-            x_cross_section (float, optional): The x-coordinate for the
+            x_cross_section: The x-coordinate for the
                 y-sag plot. Defaults to 0.
         """
         viewer = SurfaceSagViewer(self)
         viewer.view(surface_index, y_cross_section, x_cross_section)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """Convert the optical system to a dictionary.
 
         Returns:
-            dict: The dictionary representation of the optical system.
+            The dictionary representation of the optical system.
 
         """
         data = {
@@ -759,14 +655,14 @@ class Optic:
         return data
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]):
+    def from_dict(cls, data: dict[str, Any]) -> Optic:
         """Create an optical system from a dictionary.
 
         Args:
-            data (dict): The dictionary representation of the optical system.
+            data: The dictionary representation of the optical system.
 
         Returns:
-            Optic: The optical system.
+            The optical system.
 
         """
         optic = cls()
@@ -795,9 +691,6 @@ class Optic:
 
         optic.paraxial = Paraxial(optic)
         optic.aberrations = Aberrations(optic)
-        # The following line was in the original file but seems to cause an error
-        # as ray_generator is not a standard attribute initialized in __init__.
-        # It's correctly instantiated inside the trace method now.
-        # optic.ray_generator = RayGenerator(optic)
+        optic.ray_tracer = RealRayTracer(optic)
 
         return optic
