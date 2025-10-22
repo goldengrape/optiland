@@ -1,4 +1,3 @@
-.. _grin_design_and_implementation:
 
 ###################################################################
 Optiland GRIN Functionality: Comprehensive Review and Implementation Guide
