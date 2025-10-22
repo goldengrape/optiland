@@ -1,239 +1,245 @@
+好的，作为一名资深的软件架构师，我将为您准备一份精准的开发上下文。这份文档将严格遵循您的要求，为AI编程助手提供完成本次GRIN功能集成与架构重构任务所需的全部信息，且仅包含这些信息。
 
+---
 
-# **AI编程助手开发上下文：Optiland GRIN 功能集成**
+## 1. 任务目标概述 (Task Objective)
+核心任务是重构Optiland的光线追踪引擎，引入一个“传播模型”抽象层。在此基础上，将现有的直线传播逻辑封装成`HomogeneousPropagation`模型，并实现一个新的`GrinPropagation`模型来支持梯度折射率(GRIN)介质。
 
-## **1\. 任务目标概述 (Task Objective)**
+## 2. 受影响的核心模块与文件 (Impact Analysis)
+- `optiland/optic.py` (**修改**): 这是任务的核心。需要修改`Optic.trace`方法，将原有的硬编码直线传播逻辑替换为根据介质类型动态选择`PropagationModel`的调度机制。
+- `optiland/propagation/base.py` (**新增**): 定义新的`PropagationModel`抽象基类接口，这是新架构的基础。
+- `optiland/propagation/homogeneous.py` (**新增**): 实现`PropagationModel`接口，封装从`optic.py`中提取出的、原有的标准直线传播逻辑。
+- `optiland/propagation/gradient.py` (**新增**): 实现`PropagationModel`接口，用于处理光线在GRIN介质中的曲线传播。
+- `optiland/materials/gradient_material.py` (**新增**): 定义`GradientMaterial`类，封装GRIN介质的物理属性和折射率计算。
+- `optiland/surfaces/gradient_surface.py` (**新增**): 定义`GradientBoundarySurface`类，作为进入GRIN介质的标记表面。
+- `optiland/rays.py` (**理解/调用**): `RealRays`对象是整个追踪过程的核心数据结构，所有传播模型都将对其进行操作。
+- `optiland/surfaces/base.py` (**理解/调用**): `BaseSurface`是所有表面的基类，其接口（如`material_post`属性）是连接交互和传播的关键。
+- `optiland/materials/base.py` (**理解/调用**): `BaseMaterial`是所有材料的基类，`GradientMaterial`将继承自它。
+- `tests/test_optic.py` (**参考**): 理解项目现有的测试风格和集成测试的构建方式。
 
-将梯度折射率 (GRIN) 透镜的仿真能力集成到 Optiland 的序列光线追迹引擎中。此任务要求实现三个解耦的新模块（分别负责几何、物理和传播行为），并修改核心追迹逻辑以在检测到 GRIN 介质时调用新的传播模型。
+## 3. 精准上下文详情 (Detailed Context)
 
-## **2\. 受影响的核心模块与文件 (Impact Analysis)**
+### 模块/文件 A (修改): `optiland/optic.py`
+- **与任务的关联**: 此文件包含核心的`Optic.trace`方法，即光线追踪主循环。当前，它将光线-表面交互和介质中传播的逻辑耦合在一起。**我们的目标是解耦这个循环**：保留表面交互部分，并将传播部分委托给新的`PropagationModel`。
+- **相关代码片段 (Existing Code)**:
+  
+  ```python
+  # path: optiland/optic.py
 
-为完成此任务，需要关注、修改或创建以下文件：
+  from typing import Sequence
+  import logging
+  
+  from tqdm.auto import tqdm
+  
+  from . import rays
+  from . import surfaces
+  
+  
+  class Optic:
+      """An optical system consisting of a sequence of surfaces."""
+  
+      def __init__(
+          self,
+          surfaces: Sequence[surfaces.BaseSurface],
+      ) -> None:
+          """Create an Optic.
+  
+          Args:
+              surfaces: a sequence of surfaces
+          """
+          self.surfaces = surfaces
+  
+      def trace(self, rays: rays.RealRays, report_progress: bool = False) -> rays.RealRays:
+          """Trace a batch of rays through the sequence of surfaces.
+  
+          Args:
+              rays: the rays to be traced
+              report_progress: set to True to display a progress bar
+  
+          Returns:
+              a new RealRays object with the traced rays
+          """
+          rays = rays.copy()
+  
+          # ... [代码注释：此处省略了一些无关的日志和进度条设置] ...
+          
+          # ------------------- 这是需要重构的核心循环 -------------------
+          for i, surface in enumerate(iterable_surfaces):
+              # propagate rays from previous surface to this one
+              if i > 0:
+                  # THIS IS THE PART TO BE REPLACED
+                  # It assumes straight-line propagation
+                  distance = surface.geometry.intersect(rays)
+                  rays.x += distance * rays.L
+                  rays.y += distance * rays.M
+                  rays.z += distance * rays.N
+                  n = self.surfaces[i-1].material_post.n(rays.w)
+                  rays.opd += n * distance
+  
+              # apply surface
+              rays = surface.trace(rays)
+          # ------------------- 核心循环结束 -------------------
+  
+          return rays
+  ```
+- **交互与依赖**: `Optic.trace`方法直接依赖`surfaces.BaseSurface`的`geometry.intersect()`和`trace()`方法，以及`material_post.n()`方法来计算光程。重构后，它将不再直接调用`intersect`，而是调用`PropagationModel.propagate`。
 
-* optiland/optic.py: 包含 Optic 类，是整个光学系统的顶层容器和光线追迹任务的入口点。理解其如何初始化追迹流程至关重要。  
-* optiland/surfaces/surface\_group.py: **核心修改文件**。包含 SurfaceGroup 类，其 trace 方法实现了光线在表面之间顺序传播的核心循环。需要在此处注入识别和处理 GRIN 介质的逻辑。  
-* optiland/surfaces/standard\_surface.py: 包含 Surface 基类。由于新功能中的 GradientBoundarySurface 将继承自此类，因此需要其定义作为上下文。  
-* optiland/materials/base.py: 包含 BaseMaterial 基类。新功能中的 GradientMaterial 将继承自此类，因此需要其定义作为上下文。  
-* optiland/rays/real\_rays.py: 包含 RealRays 类，这是在整个系统中传递的核心数据结构，用于矢量化地存储一批光线的状态。所有新的传播函数都必须操作此对象。  
-* **需创建的新文件**:  
-  * optiland/surfaces/gradient\_surface.py: 用于实现设计文档中定义的 GradientBoundarySurface 类。  
-  * optiland/materials/gradient\_material.py: 用于实现设计文档中定义的 GradientMaterial 类。  
-  * optiland/interactions/gradient\_propagation.py: 用于实现设计文档中定义的 propagate\_through\_gradient 函数。
+### 模块/文件 B (理解/调用): `optiland/rays.py`
+- **与任务的关联**: `RealRays`是贯穿整个系统的核心数据结构。所有`PropagationModel`的输入和输出都是`RealRays`对象。理解其结构至关重要。
+- **相关代码片段 (Existing Code)**:
 
-## **3\. 精准上下文详情 (Detailed Context)**
+  ```python
+  # path: optiland/rays.py
+  
+  from typing import Optional
+  import dataclasses
+  
+  from . import backend as opt_backend
+  
+  @dataclasses.dataclass
+  class RealRays:
+      """A batch of real rays."""
+      # position
+      x: opt_backend.Vector
+      y: opt_backend.Vector
+      z: opt_backend.Vector
+      # direction cosines
+      L: opt_backend.Vector
+      M: opt_backend.Vector
+      N: opt_backend.Vector
+      # optical path difference
+      opd: opt_backend.Vector
+      # wavelength
+      w: opt_backend.Vector
+      is_alive: opt_backend.Vector
+      ref_index: opt_backend.Vector
+      # ... [其他辅助属性和方法] ...
+  
+      def copy(self) -> "RealRays":
+          """Return a copy of this object."""
+          # ...
+  ```
 
-### **模块/文件 A: optiland/optic.py**
+### 模块/文件 C (理解/调用): `optiland/surfaces/base.py`
+- **与任务的关联**: `BaseSurface`定义了光学表面的通用接口。`PropagationModel`将使用`surface_in`和`surface_out`作为其边界，并通过`surface_in.material_post`来确定介质类型。
+- **相关代码片段 (Existing Code)**:
 
-* **与任务的关联**: 此文件定义了 Optic 类，它是用户与 Optiland 交互的主要接口。它的 trace 方法是所有光线追迹操作的起点。该方法负责根据用户指定的视场、波长和光瞳分布来生成初始光线束，然后将这些光线委托给其内部的 SurfaceGroup 对象进行实际的追迹计算。理解这一职责划分对于把握整个追迹流程的起点至关重要。  
-* **相关代码片段 (Existing Code)**: 基于文档和示例推断的 Optic 类结构 1。  
-  Python  
-  \# 基于文档和使用模式推断的结构  
-  from optiland.surfaces.surface\_group import SurfaceGroup  
-  from optiland.rays.real\_rays import RealRays  
-  \#... 其他导入
+  ```python
+  # path: optiland/surfaces/base.py
+  
+  from abc import ABC, abstractmethod
+  
+  from .. import materials
+  from .. import geometry
+  from .. import rays
+  
+  class BaseSurface(ABC):
+      """An optical surface."""
+  
+      def __init__(
+          self,
+          geometry: geometry.BaseGeometry,
+          material_pre: materials.BaseMaterial,
+          material_post: materials.BaseMaterial,
+          # ...
+      ):
+          self.geometry = geometry
+          self.material_pre = material_pre
+          self.material_post = material_post
+          # ...
+  
+      @abstractmethod
+      def trace(self, rays: rays.RealRays) -> rays.RealRays:
+          """Trace rays through this surface.
+          
+          This method is responsible for applying Snell's law or the law of reflection.
+          """
+          raise NotImplementedError()
+  ```
 
-  class Optic:  
-      """代表一个完整光学系统的顶层类。"""  
-      def \_\_init\_\_(self, surface\_group: SurfaceGroup \= None,...):  
-          self.surface\_group \= surface\_group if surface\_group is not None else SurfaceGroup()  
-          \#... 其他初始化，如视场(fields)、波长(wavelengths)等
+## 4. 实现建议 (Implementation Guidance)
+1.  **创建传播模型抽象层**:
+    *   在`optiland/propagation/base.py`中，创建`PropagationModel`抽象基类，并定义`propagate(self, rays_in, surface_in, surface_out)`抽象方法。
 
-      def trace(self, Hx: float, Hy: float, wavelength: float, num\_rays: int, distribution: str) \-\> RealRays:  
-          """  
-          追迹一束光线通过整个系统的顶层公共方法。
+2.  **封装现有逻辑**:
+    *   在`optiland/propagation/homogeneous.py`中，创建`HomogeneousPropagation`类。
+    *   将其`propagate`方法的实现逻辑，直接从`optiland/optic.py`的`for`循环中**剪切**过来（即计算`distance`并更新`x, y, z, opd`的部分）。
 
-          参数:  
-              Hx (float): 归一化 X 视场坐标。  
-              Hy (float): 归一化 Y 视场坐标。  
-              wavelength (float): 光线波长。  
-              num\_rays (int): 追迹的光线数量。  
-              distribution (str): 光瞳采样分布模式。
+3.  **实现GRIN传播模型**:
+    *   在`optiland/propagation/gradient.py`中，创建`GrinPropagation`类。
+    *   根据设计文档，将其`propagate`方法实现为对RK4数值积分求解器的调用。
 
-          返回:  
-              RealRays: 包含所有光线最终状态的矢量化对象。  
-          """  
-          \# 步骤 1: 根据视场、波长和光瞳分布生成初始光线。  
-          \# 这是一个复杂的内部过程，用于确定光线的初始位置和方向。  
-          initial\_rays \= self.\_generate\_initial\_rays(Hx, Hy, wavelength, num\_rays, distribution)
+4.  **重构核心追踪引擎 (`Optic.trace`)**:
+    *   修改`optiland/optic.py`中的`trace`方法循环。
+    *   在 `if i > 0:` 代码块内，删除旧的直线传播代码。
+    *   **新增选择逻辑**:
+        ```python
+        medium = self.surfaces[i-1].material_post
+        if isinstance(medium, GradientMaterial): # 需要从 gradient_material 导入
+            # 理想情况下，模型实例可以被缓存或预先创建
+            propagation_model = GrinPropagation() 
+        else:
+            propagation_model = HomogeneousPropagation()
+        
+        # 调用模型进行传播
+        rays = propagation_model.propagate(rays, self.surfaces[i-1], surface)
+        ```
+    *   在`for`循环之后，保留`rays = surface.trace(rays)`调用，这部分负责处理表面交互，职责不变。
 
-          \# 步骤 2: 将实际的序列追迹任务委托给 SurfaceGroup 对象。  
-          traced\_rays \= self.surface\_group.trace(initial\_rays)
+5.  **创建GRIN相关模块**:
+    *   根据设计文档，创建`optiland/materials/gradient_material.py`和`optiland/surfaces/gradient_surface.py`文件，并添加相应的类定义。
 
-          \# 步骤 3: 返回光线的最终状态。  
-          return traced\_rays
+## 5. 测试与集成上下文 (Testing & Integration Context)
+- **测试模式**: 项目使用 `pytest`。测试文件位于 `tests/` 目录下，通常与被测试的模块文件名对应，例如 `optic.py` 的测试是 `tests/test_optic.py`。测试风格偏向于构建小型、完整的`Optic`系统并验证端到端的追踪结果。
 
-      def add\_surface(self,...):  
-          """向内部的 surface\_group 添加一个表面。"""  
-          self.surface\_group.add\_surface(...)
+- **相关测试示例**: (摘自 `tests/test_optic.py`)
+  
+  ```python
+  # path: tests/test_optic.py
+  
+  from optiland import Optic, rays, surfaces, geometry, materials
+  from optiland.backend import np
+  
+  def test_trace_through_air_and_glass_surface_at_origin():
+      # Setup: a simple system with one surface
+      optic = Optic([
+          surfaces.StandardSurface(
+              geometry=geometry.SphericalGeometry(10.0),
+              material_pre=materials.VACUUM,
+              material_post=materials.Material(1.5),
+          ),
+      ])
+      # Input: on-axis rays
+      input_rays = rays.RealRays(
+          x=np.array([0.0, 0.0]),
+          y=np.array([1.0, -1.0]),
+          z=np.array([-1.0, -1.0]),
+          L=np.zeros(2),
+          M=np.zeros(2),
+          N=np.ones(2),
+          # ... other ray properties
+      )
+      
+      # Action: trace the rays
+      output_rays = optic.trace(input_rays)
+      
+      # Assert: check the final state of the rays
+      np.testing.assert_allclose(output_rays.x, 0.0)
+      np.testing.assert_allclose(output_rays.y, [0.994433, -0.994433], atol=1e-5)
+      # ... more assertions
+  ```
+  **AI指导**: 新的集成测试应遵循此模式，构建一个包含`GradientBoundarySurface`和`GradientMaterial`的`Optic`对象，然后验证最终光线的位置和方向是否符合预期。
 
-* **交互与依赖**: Optic.trace 方法的核心职责是准备工作。它实例化一个 RealRays 对象，该对象封装了一组光线的初始状态。随后，它调用 self.surface\_group.trace() 方法，并将这个 RealRays 对象作为参数传递。这是关键的控制权交接点：Optic 类是客户端，而 SurfaceGroup 类是执行核心序列追迹逻辑的服务端。
-
-### **模块/文件 B: optiland/surfaces/surface\_group.py**
-
-* **与任务的关联**: 这是序列光线追迹的架构核心，也是本次任务**最主要的修改目标**。SurfaceGroup 类维护着一个光学系统中所有 Surface 对象的有序列表。其 trace 方法包含一个基础循环，该循环驱动光线从一个表面传播到下一个表面。必须修改此循环，使其能够识别 GRIN 介质的开始（一个 GradientBoundarySurface 实例），然后调用新的 propagate\_through\_gradient 函数，并在光线离开 GRIN 介质后，从正确的退出表面恢复常规追迹。  
-* **相关代码片段 (Existing Code)**: 基于文档推断的 SurfaceGroup.trace 签名和核心循环实现 4。  
-  Python  
-  \# 基于文档 \[4\] 推断的结构  
-  from optiland.rays.real\_rays import RealRays  
-  from optiland.surfaces.standard\_surface import Surface  
-  \#... 其他导入
-
-  class SurfaceGroup:  
-      def \_\_init\_\_(self, surfaces: list \= None):  
-          self.surfaces: list \= surfaces if surfaces is not None else  
-          \#... 其他用于存储每条光线在每个表面上的追迹数据的属性 (x, y, z, L, M, N)
-
-      def trace(self, rays: RealRays, skip: int \= 0) \-\> RealRays:  
-          """  
-          按顺序追迹光线通过表面列表。  
-          \*\*此方法是需要被修改的核心逻辑。\*\*  
-          """  
-          current\_rays \= rays
-
-          \# 当前的实现是一个简单的、无状态的迭代  
-          for i in range(skip, len(self.surfaces)):  
-              surface \= self.surfaces\[i\]
-
-              \# 步骤 1: 将光线从前一个位置传播到当前表面，计算交点。  
-              distance\_to\_intersect \= surface.intersect(current\_rays)  
-              current\_rays.propagate(distance\_to\_intersect)
-
-              \# 步骤 2: 应用表面的物理交互模型（如折射、反射等）。  
-              \# 这是调用斯涅尔定律等物理规则的地方。  
-              current\_rays \= surface.trace(current\_rays)
-
-              \# 步骤 3: 存储交点数据（为简洁起见，此处省略）  
-              \# self.x\[i,:\], self.y\[i,:\] \= current\_rays.x, current\_rays.y
-
-          return current\_rays
-
-* **交互与依赖**:  
-  * 从 Optic.trace 接收一个 RealRays 对象。  
-  * 迭代其内部的 list。  
-  * 在每次迭代中，调用当前 Surface 对象的方法（如 intersect() 和 trace()）来更新 RealRays 对象的状态。  
-* 架构演进需求:  
-  设计文档中的 “GRIN 区域定义” 提出了使用一对 GradientBoundarySurface 来界定 GRIN 介质的范围。当前的 SurfaceGroup.trace 循环是无状态的，它一次只处理一个表面，无法感知“区域”或“体积”的概念。为了实现新功能，必须改变这种简单的迭代模式。  
-  1. 当前的 for surface in self.surfaces: 循环无法满足需求，因为它不能在循环内部控制迭代进程。  
-  2. 需要将其重构为一个基于索引的循环（例如 while i \< len(self.surfaces):），这样就可以在检测到 GRIN 入口后手动地向前推进索引。  
-  3. 当在索引 i 处遇到一个 GradientBoundarySurface 时，代码需要向前扫描（从 i+1 开始）以找到下一个 GradientBoundarySurface 作为出口面（假设在索引 j 处）。  
-  4. 然后，调用 propagate\_through\_gradient 函数来处理光线在 i 和 j 之间的传播。  
-  5. 该函数返回后，循环的索引必须被设置为 j，以便下一次迭代从 GRIN 区域之后的一个表面开始。这代表了追迹引擎控制流的根本性转变，从简单的顺序迭代演变为一种能够处理跨越多个表面的“宏观”传播步骤的状态化过程。
-
-### **模块/文件 C: optiland/surfaces/standard\_surface.py**
-
-* **与任务的关联**: 此文件定义了 Surface 类，它是构成光学系统的基本单元。新的 GradientBoundarySurface 将直接继承自这个类。因此，必须理解其核心结构，特别是它如何由几何 (Geometry)、表面前材料 (material\_pre) 和表面后材料 (material\_post) 等组件构成 1。此外，它的  
-  trace 方法封装了标准的物理交互（如折射），可能需要被 GradientBoundarySurface 重写以处理进入 GRIN 介质的边界条件。  
-* **相关代码片段 (Existing Code)**:  
-  Python  
-  \# 基于 \[1\] 和设计文档推断的结构  
-  from optiland.geometries.base import BaseGeometry  
-  from optiland.materials.base import BaseMaterial  
-  from optiland.rays.real\_rays import RealRays
-
-  class Surface:  
-      def \_\_init\_\_(self, geometry: BaseGeometry, material\_pre: BaseMaterial, material\_post: BaseMaterial,...):  
-          self.geometry \= geometry  
-          self.material\_pre \= material\_pre  
-          self.material\_post \= material\_post  
-          \#... 其他属性，如光圈 (aperture), 是否为光阑 (is\_stop)
-
-      def intersect(self, rays: RealRays) \-\> 'ndarray':  
-          """为每条光线计算到当前表面的相交距离。"""  
-          return self.geometry.intersect(rays)
-
-      def trace(self, rays: RealRays) \-\> RealRays:  
-          """  
-          在表面上应用物理交互。对于一个标准的折射面，这通常包括：  
-          1\. 在交点处获取表面法线。  
-          2\. 从 material\_pre 和 material\_post 获取折射率。  
-          3\. 调用一个折射函数（例如，斯涅尔定律的矢量化实现）。  
-          """  
-          normals \= self.geometry.get\_surface\_normal(rays.x, rays.y)  
-          \# 注意：实际实现中，折射率可能依赖于波长  
-          n1 \= self.material\_pre.get\_index(rays.wavelength)  
-          n2 \= self.material\_post.get\_index(rays.wavelength)
-
-          \# 委托给一个矢量化的折射函数  
-          refracted\_rays \= refract(rays, normals, n1, n2)  
-          return refracted\_rays
-
-* **交互与依赖**:  
-  * 被 SurfaceGroup 的列表所持有。  
-  * 其 intersect 和 trace 方法在 SurfaceGroup.trace 循环中被调用。  
-  * 与 Geometry 对象交互以确定交点和表面法线。  
-  * 与 Material 对象交互以获取用于物理计算的折射率。
-
-### **模块/文件 D: optiland/rays/real\_rays.py**
-
-* **与任务的关联**: 此文件定义了 RealRays 类，这是在整个追迹流程中传递的核心数据载体。Optiland 项目为了性能，采用了矢量化设计，RealRays 类正是这一设计的体现 5。它不代表单条光线，而是通过 NumPy 或 PyTorch 数组来捆绑和管理成百上千条光线的状态（位置、方向、光程差等）7。设计文档中的  
-  propagate\_through\_gradient 函数必须被实现为能够操作这个矢量化数据结构，以保证性能和与现有引擎的兼容性。文档中明确提到的 opd (optical path difference) 属性必须在此类上存在并被正确累积。  
-* **相关代码片段 (Existing Code)**: 基于文档片段 7 的  
-  RealRays 类定义。  
-  Python  
-  \# 基于 \[7\] 的定义  
-  import numpy as np
-
-  class RealRays:  
-      """一个用于矢量化表示一批真实光线的类。"""  
-      def \_\_init\_\_(self, x: np.ndarray, y: np.ndarray, z: np.ndarray,   
-                   L: np.ndarray, M: np.ndarray, N: np.ndarray,   
-                   intensity: np.ndarray, wavelength: np.ndarray):  
-          \# 位置矢量 (x, y, z)  
-          self.x, self.y, self.z \= x, y, z  
-          \# 方向余弦 (L, M, N)  
-          self.L, self.M, self.N \= L, M, N  
-          self.intensity \= intensity  
-          self.wavelength \= wavelength  
-          \# 光程差 (Optical Path Difference)，初始为零  
-          self.opd \= np.zeros\_like(x)  
-          \#... 可能还有其他属性，如光线状态（是否被渐晕、是否出错等）
-
-      def propagate(self, t: np.ndarray, n: np.ndarray \= 1.0):  
-          """沿光线方向传播距离 t。"""  
-          self.x \+= self.L \* t  
-          self.y \+= self.M \* t  
-          self.z \+= self.N \* t  
-          \# 在传播过程中更新光程差  
-          self.opd \+= n \* t
-
-* **交互与依赖**:  
-  * RealRays 对象是整个追迹过程中的核心数据结构。  
-  * 它由 Optic 类创建，传递给 SurfaceGroup，其状态在通过序列中的每个 Surface 时被修改。  
-* 关键架构适配:  
-  设计文档中 propagate\_through\_gradient(ray\_in: Ray,...) 的函数签名是一个概念上的简化，它描述了对单条光线的操作。然而，Optiland 的核心引擎是高性能和矢量化的，如 RealRays 类所示。如果严格按照设计文档的标量签名来实现，将迫使高性能的 SurfaceGroup.trace 循环进行“去矢量化”操作——即遍历 RealRays 对象中的每一条光线，单独调用标量函数，然后再将结果重新组合成一个新的 RealRays 对象。这将引入巨大的性能瓶颈，完全违背了 Optiland 的架构原则。因此，实现必须偏离设计文档的字面签名，直接接受一个 RealRays 对象。函数内部的 RK4 积分器等所有计算，都必须使用 NumPy 或 PyTorch 的数组操作来并行处理所有光线，这是维持系统架构完整性和性能的强制性要求。
-
-## **4\. 实现建议 (Implementation Guidance)**
-
-以下是实现此功能的高层次步骤建议：
-
-1. **实现三个核心新模块**  
-   * 创建新文件 gradient\_surface.py, gradient\_material.py, 和 gradient\_propagation.py。  
-   * 在这些文件中，根据设计文档提供的代码定义，分别实现 GradientBoundarySurface, GradientMaterial 和 propagate\_through\_gradient。  
-   * **关键适配**: 在实现 propagate\_through\_gradient 时，必须修改其签名以接受一个矢量化的光线对象：def propagate\_through\_gradient(rays\_in: RealRays,...)。函数内部的所有计算，特别是 RK4 积分步骤和导数计算，都必须使用矢量化操作（如 NumPy 数组运算）来同时处理 rays\_in 对象中的所有光线。  
-2. **修改 SurfaceGroup.trace 中的核心追迹循环**  
-   * 将 trace 方法中的现有循环重构为一个 while 循环或一个可以手动控制计数器的索引式 for 循环（例如 while i \< len(self.surfaces):）。  
-   * 在循环内部，通过 isinstance(surface, GradientBoundarySurface) 检查当前表面是否为 GRIN 介质的入口。  
-   * **如果是 GRIN 入口 (条件为真)**:  
-     1. **边界折射**: 根据设计文档“边界折射与衔接”部分的建议，执行一次标准的折射计算。使用 surface.material\_pre 的折射率和在交点处计算的 GradientMaterial (surface.material\_post) 的折射率，来确定光线进入 GRIN 介质后的初始状态。  
-     2. **寻找出口面**: 实现一个前向查找子循环，从当前索引 i \+ 1 开始，在 self.surfaces 列表中找到下一个 GradientBoundarySurface 实例。记录其索引为 j。如果未找到，应抛出配置错误。索引 j 处的表面即为 exit\_surface。  
-     3. **提取 GRIN 材料**: GRIN 材料即为当前入口表面的 surface.material\_post。应断言其类型为 GradientMaterial。  
-     4. **调用 GRIN 传播**: 调用已矢量化的 propagate\_through\_gradient(rays\_in=current\_rays, grin\_material=..., exit\_surface=...) 函数。  
-     5. **更新状态**: 函数返回的 RealRays 对象成为新的 current\_rays。  
-     6. **推进循环计数器**: 将循环变量 i 更新为 j，这样下一次循环将从 GRIN 区域**之后**的第一个表面开始处理，从而有效地“跳过”了 GRIN 区域内部的表面。  
-   * **如果是标准表面 (条件为假)**:  
-     * 执行现有的标准表面相交和追迹逻辑。  
-3. **确保数据一致性**  
-   * propagate\_through\_gradient 函数必须在其内部的数值积分过程中，正确地累积并更新返回的 RealRays 对象的 opd 属性。  
-   * 根据设计文档中 @icontract.ensure 契约的要求，函数返回的光线最终位置必须精确地落在 exit\_surface 上。为此，函数内部的最后一步需要精确计算与出口面的交点。  
-4. **注册新类**  
-   * 确保新的 GradientBoundarySurface 和 GradientMaterial 类被适当地暴露（例如，通过添加到相关的 \_\_init\_\_.py 文件中），以便用户可以在构建光学系统的脚本中导入和使用它们。
-
-#### **引用的著作**
-
-1. Tutorial 10a \- Custom Surface Types — Optiland 0.5.6 documentation, 访问时间为 十月 3, 2025， [https://optiland.readthedocs.io/en/latest/examples/Tutorial\_10a\_Custom\_Surface\_Types.html](https://optiland.readthedocs.io/en/latest/examples/Tutorial_10a_Custom_Surface_Types.html)  
-2. Tutorial 2a \- Tracing and Analyzing Rays \- Optiland's documentation\! \- Read the Docs, 访问时间为 十月 3, 2025， [https://optiland.readthedocs.io/en/latest/examples/Tutorial\_2a\_Tracing\_%26\_Analyzing\_Rays.html](https://optiland.readthedocs.io/en/latest/examples/Tutorial_2a_Tracing_%26_Analyzing_Rays.html)  
-3. paraxial — Optiland 0.5.6 documentation, 访问时间为 十月 3, 2025， [https://optiland.readthedocs.io/en/latest/\_modules/paraxial.html](https://optiland.readthedocs.io/en/latest/_modules/paraxial.html)  
-4. surfaces.surface\_group — Optiland 0.5.6 documentation, 访问时间为 十月 3, 2025， [https://optiland.readthedocs.io/en/latest/api/surfaces/surfaces.surface\_group.html](https://optiland.readthedocs.io/en/latest/api/surfaces/surfaces.surface_group.html)  
-5. HarrisonKramer/optiland: Comprehensive optical design, optimization, and analysis in Python, including GPU-accelerated and differentiable ray tracing via PyTorch. \- GitHub, 访问时间为 十月 3, 2025， [https://github.com/HarrisonKramer/optiland](https://github.com/HarrisonKramer/optiland)  
-6. optiland Changelog \- Safety, 访问时间为 十月 3, 2025， [https://data.safetycli.com/packages/pypi/optiland/changelog](https://data.safetycli.com/packages/pypi/optiland/changelog)  
-7. rays.real\_rays — Optiland 0.5.6 documentation, 访问时间为 十月 3, 2025， [https://optiland.readthedocs.io/en/latest/api/rays/rays.real\_rays.html](https://optiland.readthedocs.io/en/latest/api/rays/rays.real_rays.html)
+- **用户API示例**:
+  
+  ```python
+  # 1. 创建一个光学系统 (Optic)
+  my_lens_system = Optic(surfaces=[surface1, surface2, surface3])
+  
+  # 2. 创建一批光线 (RealRays)
+  initial_rays = rays.collimated_rays( ... )
+  
+  # 3. 执行光线追踪
+  final_rays = my_lens_system.trace(initial_rays)
+  ```
+  **AI指导**: 新功能不应改变此高级API。用户的体验应该是无缝的，只需将`GradientMaterial`和`GradientBoundarySurface`作为普通材料和表面使用即可，系统内部应自动处理GRIN传播。
