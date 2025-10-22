@@ -1,3 +1,4 @@
+# path: optiland/materials/__init__.py
 """This package defines material types used in Optiland, including ideal
 materials, materials based on Abbe numbers, and materials loaded from
 refractiveindex.info data files."""
@@ -9,6 +10,7 @@ from .base import BaseMaterial
 from .ideal import IdealMaterial
 from .material import Material
 from .material_file import MaterialFile
+from .gradient_material import GradientMaterial  # Add this line
 from .material_utils import (
     downsample_glass_map,
     find_closest_glass,
@@ -30,6 +32,8 @@ __all__ = [
     "Material",
     # From material_file.py
     "MaterialFile",
+    # From gradient_material.py
+    "GradientMaterial",  # And add this line
     # From material_utils.py
     "downsample_glass_map",
     "get_nd_vd",
@@ -37,5 +41,5 @@ __all__ = [
     "glasses_selection",
     "plot_glass_map",
     "plot_nk",
-    find_closest_glass,
+    "find_closest_glass",
 ]

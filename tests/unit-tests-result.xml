@@ -1,1 +1,122 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="2" time="1.360" timestamp="2025-10-22T11:31:14.896142+08:00" hostname="glaptop-16"><testcase classname="tests.test_homogeneous" name="test_propagate_updates_state_correctly" time="0.003" /><testcase classname="tests.test_homogeneous" name="test_propagate_is_immutable" time="0.002" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="9" skipped="0" tests="17" time="2.167" timestamp="2025-10-22T12:27:19.246752+08:00" hostname="glaptop-16"><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_raises_not_implemented_error" time="0.001"><failure message="TypeError: GRINPropagation.propagate() got an unexpected keyword argument 't'">def test_grin_propagation_raises_not_implemented_error():
+        """Verify that GRINPropagation.propagate raises NotImplementedError."""
+        model = GRINPropagation()
+        rays = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1], wavelength=[0.5])
+    
+        with pytest.raises(NotImplementedError):
+&gt;           model.propagate(rays, t=10.0)
+E           TypeError: GRINPropagation.propagate() got an unexpected keyword argument 't'
+
+tests\propagation\test_grin.py:14: TypeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=numpy]" time="0.002"><failure message="TypeError: HomogeneousPropagation.propagate() missing 1 required positional argument: 'surface_out'">set_test_backend = None
+
+    def test_homogeneous_propagation_position_update(set_test_backend):
+        """Verify that ray coordinates are updated correctly."""
+        basic_rays = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
+        material = IdealMaterial(n=1.0)  # k=0 by default
+        model = HomogeneousPropagation(material)
+        t = 10.0
+    
+&gt;       model.propagate(basic_rays, t)
+E       TypeError: HomogeneousPropagation.propagate() missing 1 required positional argument: 'surface_out'
+
+tests\propagation\test_homogeneous.py:19: TypeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=torch]" time="0.002"><failure message="TypeError: HomogeneousPropagation.propagate() missing 1 required positional argument: 'surface_out'">set_test_backend = None
+
+    def test_homogeneous_propagation_position_update(set_test_backend):
+        """Verify that ray coordinates are updated correctly."""
+        basic_rays = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
+        material = IdealMaterial(n=1.0)  # k=0 by default
+        model = HomogeneousPropagation(material)
+        t = 10.0
+    
+&gt;       model.propagate(basic_rays, t)
+E       TypeError: HomogeneousPropagation.propagate() missing 1 required positional argument: 'surface_out'
+
+tests\propagation\test_homogeneous.py:19: TypeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=numpy]" time="0.001"><failure message="TypeError: HomogeneousPropagation.propagate() missing 1 required positional argument: 'surface_out'">set_test_backend = None
+
+    def test_homogeneous_propagation_no_attenuation_with_k0(set_test_backend):
+        """Verify ray intensity is unchanged when k=0."""
+        basic_rays = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
+        material = IdealMaterial(n=1.0, k=0.0)
+        model = HomogeneousPropagation(material)
+        t = 10.0
+    
+        initial_intensity = be.copy(basic_rays.i)
+&gt;       model.propagate(basic_rays, t)
+E       TypeError: HomogeneousPropagation.propagate() missing 1 required positional argument: 'surface_out'
+
+tests\propagation\test_homogeneous.py:34: TypeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=torch]" time="0.002"><failure message="TypeError: HomogeneousPropagation.propagate() missing 1 required positional argument: 'surface_out'">set_test_backend = None
+
+    def test_homogeneous_propagation_no_attenuation_with_k0(set_test_backend):
+        """Verify ray intensity is unchanged when k=0."""
+        basic_rays = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
+        material = IdealMaterial(n=1.0, k=0.0)
+        model = HomogeneousPropagation(material)
+        t = 10.0
+    
+        initial_intensity = be.copy(basic_rays.i)
+&gt;       model.propagate(basic_rays, t)
+E       TypeError: HomogeneousPropagation.propagate() missing 1 required positional argument: 'surface_out'
+
+tests\propagation\test_homogeneous.py:34: TypeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=numpy]" time="0.001"><failure message="TypeError: HomogeneousPropagation.propagate() missing 1 required positional argument: 'surface_out'">set_test_backend = None
+
+    def test_homogeneous_propagation_attenuation_with_k_gt_0(set_test_backend):
+        """Verify ray intensity is correctly attenuated when k &gt; 0."""
+        basic_rays = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
+        k_val = 0.1
+        wavelength = be.to_numpy(basic_rays.w)[0]
+        t = 10.0  # distance in mm
+    
+        material = IdealMaterial(n=1.0, k=k_val)
+        model = HomogeneousPropagation(material)
+    
+        initial_intensity = be.to_numpy(basic_rays.i)[0]
+&gt;       model.propagate(basic_rays, t)
+E       TypeError: HomogeneousPropagation.propagate() missing 1 required positional argument: 'surface_out'
+
+tests\propagation\test_homogeneous.py:50: TypeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=torch]" time="0.001"><failure message="TypeError: HomogeneousPropagation.propagate() missing 1 required positional argument: 'surface_out'">set_test_backend = None
+
+    def test_homogeneous_propagation_attenuation_with_k_gt_0(set_test_backend):
+        """Verify ray intensity is correctly attenuated when k &gt; 0."""
+        basic_rays = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
+        k_val = 0.1
+        wavelength = be.to_numpy(basic_rays.w)[0]
+        t = 10.0  # distance in mm
+    
+        material = IdealMaterial(n=1.0, k=k_val)
+        model = HomogeneousPropagation(material)
+    
+        initial_intensity = be.to_numpy(basic_rays.i)[0]
+&gt;       model.propagate(basic_rays, t)
+E       TypeError: HomogeneousPropagation.propagate() missing 1 required positional argument: 'surface_out'
+
+tests\propagation\test_homogeneous.py:50: TypeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=numpy]" time="0.001"><failure message="TypeError: HomogeneousPropagation.propagate() got an unexpected keyword argument 't'">set_test_backend = None
+
+    def test_homogeneous_propagation_normalizes_rays(set_test_backend):
+        """Verify that unnormalized rays are normalized after propagation."""
+        basic_rays = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
+        material = IdealMaterial(n=1.0)
+        model = HomogeneousPropagation(material)
+    
+        # Manually un-normalize the rays
+        basic_rays.L = basic_rays.L * 2
+        basic_rays.is_normalized = False
+    
+&gt;       model.propagate(basic_rays, t=10.0)
+E       TypeError: HomogeneousPropagation.propagate() got an unexpected keyword argument 't'
+
+tests\propagation\test_homogeneous.py:72: TypeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=torch]" time="0.001"><failure message="TypeError: HomogeneousPropagation.propagate() got an unexpected keyword argument 't'">set_test_backend = None
+
+    def test_homogeneous_propagation_normalizes_rays(set_test_backend):
+        """Verify that unnormalized rays are normalized after propagation."""
+        basic_rays = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
+        material = IdealMaterial(n=1.0)
+        model = HomogeneousPropagation(material)
+    
+        # Manually un-normalize the rays
+        basic_rays.L = basic_rays.L * 2
+        basic_rays.is_normalized = False
+    
+&gt;       model.propagate(basic_rays, t=10.0)
+E       TypeError: HomogeneousPropagation.propagate() got an unexpected keyword argument 't'
+
+tests\propagation\test_homogeneous.py:72: TypeError</failure></testcase><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material0-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material1-GRINPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material2-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material0-HomogeneousPropagation]" time="0.002" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material1-GRINPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material2-HomogeneousPropagation]" time="0.002" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=numpy]" time="0.013" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=torch]" time="0.005" /></testsuite></testsuites>

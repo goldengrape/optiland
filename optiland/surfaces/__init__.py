@@ -1,3 +1,4 @@
+# path: optiland/surfaces/__init__.py
 # flake8: noqa
 
 from .factories.surface_factory import SurfaceFactory
@@ -9,3 +10,10 @@ from .converters import (
 )
 from .standard_surface import Surface
 from .surface_group import SurfaceGroup
+from .gradient_surface import GradientBoundarySurface  # Add this line
+
+__all__ = [
+    "BasePropagationModel",
+    "HomogeneousPropagation",
+    "GRINPropagation",
+]
