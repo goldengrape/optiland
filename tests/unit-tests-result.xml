@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="18" time="1.823" timestamp="2025-10-23T12:16:41.499823+08:00" hostname="glaptop-16"><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_executes_without_error[backend=numpy]" time="0.002"><failure message="Failed: GRINPropagation.propagate raised an unexpected exception: name 'RealRays' is not defined">set_test_backend = None
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="18" time="2.108" timestamp="2025-10-23T12:39:44.762586+08:00" hostname="glaptop-16"><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_executes_without_error[backend=numpy]" time="0.238"><failure message="Failed: GRINPropagation.propagate raised an unexpected exception: Some rays did not intersect the exit surface after the maximum number of steps.">set_test_backend = None
 
     def test_grin_propagation_executes_without_error(set_test_backend):
         """
@@ -42,30 +42,44 @@
 
 tests\propagation\test_grin.py:54: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-optiland\propagation\grin.py:77: in propagate
-    return self._solve_grin_path(
+optiland\propagation\grin.py:73: in propagate
+    return propagate_through_gradient(
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:833: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-self = &lt;optiland.propagation.grin.GRINPropagation object at 0x0000023BF6027DD0&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000023BF6A998D0&gt;
+rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x00000194339DAD10&gt;
 grin_material = GradientMaterial(n0=1.5, nr2=-0.001, nr4=0.0, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
-exit_surface = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BEFF58D50&gt;
+exit_surface = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000019432F58BD0&gt;
 step_size = 0.1, max_steps = 1000
 
-    def _solve_grin_path(
-        self,
-        rays_in: "RealRays",
+    @icontract.require(lambda rays_in: isinstance(rays_in, RealRays))
+    @icontract.require(lambda step_size: step_size &gt; 0)
+    @icontract.require(lambda max_steps: max_steps &gt; 0)
+    def propagate_through_gradient(
+        rays_in: RealRays,
         grin_material: "GradientMaterial",
         exit_surface: "BaseSurface",
         step_size: float,
         max_steps: int
-    ) -&gt; "RealRays":
+    ) -&gt; RealRays:
         """
-        Traces rays using RK4 integration until they intersect the exit surface.
+        Traces a batch of rays using RK4 integration until they intersect the exit surface.
     
         This is a vectorized implementation that processes a batch of rays
         simultaneously for performance. It tracks active rays and stops
         their propagation individually once they hit the boundary.
+    
+        Args:
+            rays_in: The initial state of the rays (positions and directions).
+            grin_material: The physical model of the GRIN medium.
+            exit_surface: The geometric surface marking the end of the GRIN medium.
+            step_size: The step size for RK4 integration (in mm).
+            max_steps: The maximum number of steps to prevent infinite loops.
+    
+        Returns:
+            A new `RealRays` object representing the final state of the rays at the exit surface.
         """
         num_rays = len(rays_in.x)
     
@@ -78,23 +92,26 @@ step_size = 0.1, max_steps = 1000
         wavelength = rays_in.w
     
         n_start, _ = grin_material.get_index_and_gradient(r[:, 0], r[:, 1], r[:, 2], wavelength)
-        k = n_start[:, be.newaxis] * d
+        k = be.unsqueeze_last(n_start) * d
     
         opd = be.copy(rays_in.opd)
-        active_rays = be.ones(num_rays, dtype=bool)
+    
+        # FIX: Create a boolean tensor/array in a backend-agnostic way.
+        # be.ones((num_rays,)) creates a float array of [1., 1., ...].
+        # Comparing it to 0 yields a boolean array of [True, True, ...].
+        # The shape is passed as a tuple to satisfy PyTorch's `ones` signature.
+        active_rays = be.ones((num_rays,)) &gt; 0
     
         # Pre-allocate arrays to store the final state of rays upon exit.
         final_r = be.copy(r)
         final_k = be.copy(k)
     
-        def derivatives(current_r: Any, current_k: Any, w_active: Any) -&gt; tuple:
+        def derivatives(current_r: Any, current_k: Any, w_active: Any) -&gt; tuple[Any, Any]:
             """Helper function to compute derivatives for the RK4 solver."""
             n, grad_n = grin_material.get_index_and_gradient(
                 current_r[:, 0], current_r[:, 1], current_r[:, 2], w_active
             )
-            # dr_ds = k / n
-            dr_ds = current_k / (n[:, be.newaxis] + 1e-12) # Add epsilon for stability
-            # dk_ds = ∇n
+            dr_ds = current_k / (be.unsqueeze_last(n) + 1e-12)
             dk_ds = grad_n
             return dr_ds, dk_ds
     
@@ -102,7 +119,6 @@ step_size = 0.1, max_steps = 1000
             if not be.any(active_rays):
                 break
     
-            # Select only the active rays for this iteration's computation.
             r_active = r[active_rays]
             k_active = k[active_rays]
             w_active = wavelength if be.ndim(wavelength) == 0 else wavelength[active_rays]
@@ -120,34 +136,51 @@ step_size = 0.1, max_steps = 1000
             r_next_active = r_active + (step_size / 6.0) * (r1 + 2*r2 + 2*r3 + r4)
             k_next_active = k_active + (step_size / 6.0) * (k1 + 2*k2 + 2*k3 + k4)
     
-            # Update the main state array for all active rays.
             r[active_rays] = r_next_active
             k[active_rays] = k_next_active
     
-            # Accumulate Optical Path Difference (OPD).
             n_next, _ = grin_material.get_index_and_gradient(
                 r_next_active[:, 0], r_next_active[:, 1], r_next_active[:, 2], w_active
             )
-            opd[active_rays] += 0.5 * (n_current + n_next) * step_size
+            opd[active_rays] = opd[active_rays] + 0.5 * (n_current + n_next) * step_size
     
             # --- Intersection Check ---
-            # Check for intersection within the segment [r_active, r_next_active].
             segment_vec = r_next_active - r_active
             segment_len = be.linalg.norm(segment_vec, axis=-1)
     
             safe_segment_len = segment_len + 1e-12
-            segment_dir = segment_vec / safe_segment_len[:, be.newaxis]
+            segment_dir = segment_vec / be.unsqueeze_last(safe_segment_len)
     
-            # Use a temporary RealRays object for the intersection test.
-&gt;           segment_rays = RealRays(
-                           ^^^^^^^^
+            # FIX: Instantiate RealRays using the correct constructor signature
+            # (`intensity`, `wavelength`) as implied by the test suite and error messages.
+            segment_rays = RealRays(
                 x=r_active[:, 0], y=r_active[:, 1], z=r_active[:, 2],
                 L=segment_dir[:, 0], M=segment_dir[:, 1], N=segment_dir[:, 2],
-                intensity=be.ones_like(segment_len), wavelength=w_active
+                intensity=be.ones_like(segment_len),
+                wavelength=w_active
             )
-E           NameError: name 'RealRays' is not defined
+    
+            exit_surface.geometry.localize(segment_rays)
+            distance_to_intersect = exit_surface.geometry.distance(segment_rays)
+    
+            intersected_mask_local = (distance_to_intersect &gt; 1e-9) &amp; (distance_to_intersect &lt;= segment_len)
+    
+            if be.any(intersected_mask_local):
+                active_indices_global = be.where(active_rays)[0]
+                intersected_indices_global = active_indices_global[intersected_mask_local]
+    
+                intersection_point = r_active[intersected_mask_local] + \
+                    be.unsqueeze_last(distance_to_intersect[intersected_mask_local]) * segment_dir[intersected_mask_local]
+    
+                final_r[intersected_indices_global] = intersection_point
+                final_k[intersected_indices_global] = k_next_active[intersected_mask_local]
+                active_rays[intersected_indices_global] = False
+        else:
+            if be.any(active_rays):
+&gt;               raise ValueError("Some rays did not intersect the exit surface after the maximum number of steps.")
+E               ValueError: Some rays did not intersect the exit surface after the maximum number of steps.
 
-optiland\propagation\grin.py:172: NameError
+optiland\propagation\gradient_propagation.py:147: ValueError
 
 During handling of the above exception, another exception occurred:
 
@@ -193,9 +226,9 @@ set_test_backend = None
             rays_out = model.propagate(rays_in, surface_in, surface_out)
         except Exception as e:
 &gt;           pytest.fail(f"GRINPropagation.propagate raised an unexpected exception: {e}")
-E           Failed: GRINPropagation.propagate raised an unexpected exception: name 'RealRays' is not defined
+E           Failed: GRINPropagation.propagate raised an unexpected exception: Some rays did not intersect the exit surface after the maximum number of steps.
 
-tests\propagation\test_grin.py:56: Failed</failure></testcase><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_executes_without_error[backend=torch]" time="0.002"><failure message="Failed: GRINPropagation.propagate raised an unexpected exception: too many indices for tensor of dimension 1">set_test_backend = None
+tests\propagation\test_grin.py:56: Failed</failure></testcase><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_executes_without_error[backend=torch]" time="0.013"><failure message="Failed: GRINPropagation.propagate raised an unexpected exception: The 'torch' backend (module optiland.backend.torch_backend) has no attribute 'ndim'.">set_test_backend = None
 
     def test_grin_propagation_executes_without_error(set_test_backend):
         """
@@ -239,47 +272,55 @@ tests\propagation\test_grin.py:56: Failed</failure></testcase><testcase classnam
 
 tests\propagation\test_grin.py:54: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-optiland\propagation\grin.py:77: in propagate
-    return self._solve_grin_path(
+optiland\propagation\grin.py:73: in propagate
+    return propagate_through_gradient(
+..\..\miniconda3\envs\optiland\Lib\site-packages\icontract\_checkers.py:833: in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+optiland\propagation\gradient_propagation.py:91: in propagate_through_gradient
+    w_active = wavelength if be.ndim(wavelength) == 0 else wavelength[active_rays]
+                             ^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-self = &lt;optiland.propagation.grin.GRINPropagation object at 0x0000023BF6CFB690&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000023BF4EDA510&gt;
-grin_material = GradientMaterial(n0=1.5, nr2=-0.001, nr4=0.0, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
-exit_surface = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF543A850&gt;
-step_size = 0.1, max_steps = 1000
+name = 'ndim'
 
-    def _solve_grin_path(
-        self,
-        rays_in: "RealRays",
-        grin_material: "GradientMaterial",
-        exit_surface: "BaseSurface",
-        step_size: float,
-        max_steps: int
-    ) -&gt; "RealRays":
+    def __getattr__(name):
+        """Dynamically retrieve attributes (functions/constants) from the current backend.
+    
+        When a user accesses an attribute (e.g., be.sin or be.pi), this function
+        tries to retrieve the attribute from the current backend module. If not found,
+        it attempts to retrieve the attribute from an optional `_lib` attribute of the
+        backend module (allowing for a two-level backend organization).
+    
+        Raises:
+            AttributeError: If the attribute is not found in the current backend.
         """
-        Traces rays using RK4 integration until they intersect the exit surface.
+        if name in globals():
+            return globals()[name]
     
-        This is a vectorized implementation that processes a batch of rays
-        simultaneously for performance. It tracks active rays and stops
-        their propagation individually once they hit the boundary.
-        """
-        num_rays = len(rays_in.x)
+        backend = _backends[_current_backend]
     
-        # Initialize state vectors for the integration.
-        # r: position vector [x, y, z]
-        # k: optical direction vector [n*L, n*M, n*N]
-        r = be.stack([rays_in.x, rays_in.y, rays_in.z], axis=-1)
-        d = be.stack([rays_in.L, rays_in.M, rays_in.N], axis=-1)
+        # Direct attribute lookup in the backend module.
+        try:
+            return getattr(backend, name)
+        except AttributeError:
+            pass
     
-        wavelength = rays_in.w
+        # Fallback: check the _lib submodule if it exists.
+        lib = getattr(backend, "_lib", None)
+        if lib:
+            try:
+                return getattr(lib, name)
+            except AttributeError:
+                pass
     
-        n_start, _ = grin_material.get_index_and_gradient(r[:, 0], r[:, 1], r[:, 2], wavelength)
-&gt;       k = n_start[:, be.newaxis] * d
-            ^^^^^^^^^^^^^^^^^^^^^^
-E       IndexError: too many indices for tensor of dimension 1
+&gt;       raise AttributeError(
+            f"The '{_current_backend}' backend (module {backend.__name__}) "
+            f"has no attribute '{name}'."
+        )
+E       AttributeError: The 'torch' backend (module optiland.backend.torch_backend) has no attribute 'ndim'.
 
-optiland\propagation\grin.py:111: IndexError
+optiland\backend\__init__.py:152: AttributeError
 
 During handling of the above exception, another exception occurred:
 
@@ -325,265 +366,6 @@ set_test_backend = None
             rays_out = model.propagate(rays_in, surface_in, surface_out)
         except Exception as e:
 &gt;           pytest.fail(f"GRINPropagation.propagate raised an unexpected exception: {e}")
-E           Failed: GRINPropagation.propagate raised an unexpected exception: too many indices for tensor of dimension 1
+E           Failed: GRINPropagation.propagate raised an unexpected exception: The 'torch' backend (module optiland.backend.torch_backend) has no attribute 'ndim'.
 
-tests\propagation\test_grin.py:56: Failed</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=torch]" time="0.002"><failure message="RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.">set_test_backend = None
-
-    def test_homogeneous_propagation_position_update(set_test_backend):
-        """Verify that ray coordinates are updated correctly."""
-        # setup
-        rays_in = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
-        material = IdealMaterial(n=1.5)
-        distance = 10.0
-        surface_in, surface_out = create_test_surfaces(distance, material)
-        model = HomogeneousPropagation(material)
-    
-        # action
-&gt;       rays_out = model.propagate(rays_in, surface_in, surface_out)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-tests\propagation\test_homogeneous.py:47: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000023BF7099BD0&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000023BF7098650&gt;
-surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF7099AD0&gt;
-surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF7099E90&gt;
-
-    def propagate(
-        self,
-        rays_in: "RealRays",
-        surface_in: "BaseSurface",
-        surface_out: "BaseSurface"
-    ) -&gt; "RealRays":
-        """
-        Propagates rays from an entry to an exit surface by modifying the
-        `rays_in` object directly.
-    
-        This method follows a performance-oriented, imperative contract. The state
-        of the `rays_in` object is updated to reflect its new position and
-        properties at the exit surface.
-    
-        Returns:
-            The modified `rays_in` object itself, allowing for method chaining.
-        """
-        # --- High-Performance Contract: In-place Modification ---
-        # The 'rays_in' object will be mutated directly. No copy is made.
-    
-        # 1. Calculate the geometric distance to the exit surface.
-        #    We must localize rays to the exit surface's coordinate system first.
-        surface_out.geometry.localize(rays_in)
-        distance = surface_out.geometry.distance(rays_in)
-        surface_out.geometry.globalize(rays_in) # Return rays to global system
-    
-        # 2. Update the ray positions.
-        rays_in.x += distance * rays_in.L
-        rays_in.y += distance * rays_in.M
-        rays_in.z += distance * rays_in.N
-    
-        # 3. Handle physical effects within the medium.
-        medium = surface_in.material_post
-    
-        # 3a. Update the Optical Path Difference.
-        n = medium.n(rays_in.w)
-&gt;       rays_in.opd += n * distance
-E       RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.
-
-optiland\propagation\homogeneous.py:76: RuntimeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=torch]" time="0.001"><failure message="RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.">set_test_backend = None
-
-    def test_homogeneous_propagation_no_attenuation_with_k0(set_test_backend):
-        """Verify ray intensity is unchanged when k=0."""
-        # setup
-        rays_in = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
-        material = IdealMaterial(n=1.0, k=0.0)
-        distance = 10.0
-        surface_in, surface_out = create_test_surfaces(distance, material)
-        model = HomogeneousPropagation(material)
-    
-        initial_intensity = be.copy(rays_in.i)
-    
-        # action
-&gt;       rays_out = model.propagate(rays_in, surface_in, surface_out)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-tests\propagation\test_homogeneous.py:67: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000023BF7089710&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000023BF7089950&gt;
-surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF3218ED0&gt;
-surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF7089B90&gt;
-
-    def propagate(
-        self,
-        rays_in: "RealRays",
-        surface_in: "BaseSurface",
-        surface_out: "BaseSurface"
-    ) -&gt; "RealRays":
-        """
-        Propagates rays from an entry to an exit surface by modifying the
-        `rays_in` object directly.
-    
-        This method follows a performance-oriented, imperative contract. The state
-        of the `rays_in` object is updated to reflect its new position and
-        properties at the exit surface.
-    
-        Returns:
-            The modified `rays_in` object itself, allowing for method chaining.
-        """
-        # --- High-Performance Contract: In-place Modification ---
-        # The 'rays_in' object will be mutated directly. No copy is made.
-    
-        # 1. Calculate the geometric distance to the exit surface.
-        #    We must localize rays to the exit surface's coordinate system first.
-        surface_out.geometry.localize(rays_in)
-        distance = surface_out.geometry.distance(rays_in)
-        surface_out.geometry.globalize(rays_in) # Return rays to global system
-    
-        # 2. Update the ray positions.
-        rays_in.x += distance * rays_in.L
-        rays_in.y += distance * rays_in.M
-        rays_in.z += distance * rays_in.N
-    
-        # 3. Handle physical effects within the medium.
-        medium = surface_in.material_post
-    
-        # 3a. Update the Optical Path Difference.
-        n = medium.n(rays_in.w)
-&gt;       rays_in.opd += n * distance
-E       RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.
-
-optiland\propagation\homogeneous.py:76: RuntimeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=torch]" time="0.001"><failure message="RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.">set_test_backend = None
-
-    def test_homogeneous_propagation_attenuation_with_k_gt_0(set_test_backend):
-        """Verify ray intensity is correctly attenuated when k &gt; 0."""
-        # setup
-        rays_in = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
-        k_val = 0.1
-        distance = 10.0  # distance in mm
-        wavelength = be.to_numpy(rays_in.w)[0]
-    
-        material = IdealMaterial(n=1.0, k=k_val)
-        surface_in, surface_out = create_test_surfaces(distance, material)
-        model = HomogeneousPropagation(material)
-    
-        initial_intensity = be.to_numpy(rays_in.i)[0]
-    
-        # action
-&gt;       rays_out = model.propagate(rays_in, surface_in, surface_out)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-tests\propagation\test_homogeneous.py:88: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000023BF709B6D0&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000023BF70994D0&gt;
-surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF709BF90&gt;
-surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF709BC10&gt;
-
-    def propagate(
-        self,
-        rays_in: "RealRays",
-        surface_in: "BaseSurface",
-        surface_out: "BaseSurface"
-    ) -&gt; "RealRays":
-        """
-        Propagates rays from an entry to an exit surface by modifying the
-        `rays_in` object directly.
-    
-        This method follows a performance-oriented, imperative contract. The state
-        of the `rays_in` object is updated to reflect its new position and
-        properties at the exit surface.
-    
-        Returns:
-            The modified `rays_in` object itself, allowing for method chaining.
-        """
-        # --- High-Performance Contract: In-place Modification ---
-        # The 'rays_in' object will be mutated directly. No copy is made.
-    
-        # 1. Calculate the geometric distance to the exit surface.
-        #    We must localize rays to the exit surface's coordinate system first.
-        surface_out.geometry.localize(rays_in)
-        distance = surface_out.geometry.distance(rays_in)
-        surface_out.geometry.globalize(rays_in) # Return rays to global system
-    
-        # 2. Update the ray positions.
-        rays_in.x += distance * rays_in.L
-        rays_in.y += distance * rays_in.M
-        rays_in.z += distance * rays_in.N
-    
-        # 3. Handle physical effects within the medium.
-        medium = surface_in.material_post
-    
-        # 3a. Update the Optical Path Difference.
-        n = medium.n(rays_in.w)
-&gt;       rays_in.opd += n * distance
-E       RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.
-
-optiland\propagation\homogeneous.py:76: RuntimeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=numpy]" time="0.002" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=torch]" time="0.002"><failure message="RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.">set_test_backend = None
-
-    def test_homogeneous_propagation_normalizes_rays(set_test_backend):
-        """Verify that unnormalized rays are normalized after propagation."""
-        # setup
-        rays_in = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
-        material = IdealMaterial(n=1.0)
-        distance = 10.0
-        surface_in, surface_out = create_test_surfaces(distance, material)
-        model = HomogeneousPropagation(material)
-    
-        # Manually un-normalize the rays
-        rays_in.L = rays_in.L * 2.0
-        rays_in.is_normalized = False
-    
-        # action
-&gt;       rays_out = model.propagate(rays_in, surface_in, surface_out)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-tests\propagation\test_homogeneous.py:115: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000023BF7089E50&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000023BF708B9D0&gt;
-surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF708AC10&gt;
-surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF7088FD0&gt;
-
-    def propagate(
-        self,
-        rays_in: "RealRays",
-        surface_in: "BaseSurface",
-        surface_out: "BaseSurface"
-    ) -&gt; "RealRays":
-        """
-        Propagates rays from an entry to an exit surface by modifying the
-        `rays_in` object directly.
-    
-        This method follows a performance-oriented, imperative contract. The state
-        of the `rays_in` object is updated to reflect its new position and
-        properties at the exit surface.
-    
-        Returns:
-            The modified `rays_in` object itself, allowing for method chaining.
-        """
-        # --- High-Performance Contract: In-place Modification ---
-        # The 'rays_in' object will be mutated directly. No copy is made.
-    
-        # 1. Calculate the geometric distance to the exit surface.
-        #    We must localize rays to the exit surface's coordinate system first.
-        surface_out.geometry.localize(rays_in)
-        distance = surface_out.geometry.distance(rays_in)
-        surface_out.geometry.globalize(rays_in) # Return rays to global system
-    
-        # 2. Update the ray positions.
-        rays_in.x += distance * rays_in.L
-        rays_in.y += distance * rays_in.M
-        rays_in.z += distance * rays_in.N
-    
-        # 3. Handle physical effects within the medium.
-        medium = surface_in.material_post
-    
-        # 3a. Update the Optical Path Difference.
-        n = medium.n(rays_in.w)
-&gt;       rays_in.opd += n * distance
-E       RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.
-
-optiland\propagation\homogeneous.py:76: RuntimeError</failure></testcase><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material0-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material1-GRINPropagation]" time="0.000" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material2-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material0-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material1-GRINPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material2-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=numpy]" time="0.010" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=torch]" time="0.004" /></testsuite></testsuites>
+tests\propagation\test_grin.py:56: Failed</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=torch]" time="0.003" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=torch]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=torch]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=torch]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material0-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material1-GRINPropagation]" time="0.000" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material2-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material0-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material1-GRINPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material2-HomogeneousPropagation]" time="0.002" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=numpy]" time="0.014" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=torch]" time="0.007" /></testsuite></testsuites>
