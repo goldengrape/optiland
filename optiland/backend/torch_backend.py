@@ -130,50 +130,78 @@ grad_mode: GradMode = _config.grad_mode
 # --------------------------
 # Array Creation
 # --------------------------
-def array(x: ArrayLike) -> Tensor:
-    """Create a tensor with current device, precision, and grad settings."""
+def array(x: ArrayLike, dtype: torch.dtype | None = None) -> Tensor:
+    """
+    Create a tensor, ensuring numerical inputs default to floating point
+    and safely handling gradient requirements.
+    """
     if isinstance(x, torch.Tensor):
-        return x
+        # If a dtype is specified, cast the existing tensor.
+        return x.to(dtype=dtype) if dtype else x
 
-    # to avoid slow conversion, if data is a list/tuple of numpy arrays,
-    # convert it to a single multi-dimensional numpy array first
+    final_dtype = dtype
+    if final_dtype is None:
+        final_dtype = get_precision()
+
     if isinstance(x, (list | tuple)) and len(x) > 0 and isinstance(x[0], np.ndarray):
         x = np.array(x)
+        
+    is_grad_compatible = final_dtype.is_floating_point or final_dtype.is_complex
+    grad_setting = grad_mode.requires_grad and is_grad_compatible
 
     return torch.tensor(
         x,
         device=get_device(),
-        dtype=get_precision(),
-        requires_grad=grad_mode.requires_grad,
+        dtype=final_dtype,
+        requires_grad=grad_setting,
     )
 
 
-def zeros(shape: Sequence[int]) -> Tensor:
+def zeros(shape: Sequence[int], dtype: torch.dtype | None = None) -> Tensor:
+    """Creates a tensor of zeros, accepting a dtype argument."""
+    final_dtype = dtype or get_precision()
+    is_grad_compatible = final_dtype.is_floating_point or final_dtype.is_complex
+    grad_setting = grad_mode.requires_grad and is_grad_compatible
+    
     return torch.zeros(
         shape,
         device=get_device(),
-        dtype=get_precision(),
-        requires_grad=grad_mode.requires_grad,
+        dtype=final_dtype,
+        requires_grad=grad_setting,
     )
 
 
-def ones(shape: Sequence[int]) -> Tensor:
+def ones(shape: Sequence[int], dtype: torch.dtype | None = None) -> Tensor:
+    """Creates a tensor of ones, accepting a dtype argument."""
+    final_dtype = dtype or get_precision()
+    if final_dtype is bool:
+        final_dtype = torch.bool
+        
+    is_grad_compatible = final_dtype.is_floating_point or final_dtype.is_complex
+    grad_setting = grad_mode.requires_grad and is_grad_compatible
+
     return torch.ones(
         shape,
         device=get_device(),
-        dtype=get_precision(),
-        requires_grad=grad_mode.requires_grad,
+        dtype=final_dtype,
+        requires_grad=grad_setting,
     )
 
 
-def full(shape: Sequence[int], fill_value: float | Tensor) -> Tensor:
+def full(shape: Sequence[int], fill_value: float | Tensor, dtype: torch.dtype | None = None) -> Tensor:
+    """Creates a tensor with a given value, accepting a dtype argument."""
     val = fill_value.item() if isinstance(fill_value, torch.Tensor) else fill_value
+    final_dtype = dtype or get_precision()
+    
+    is_grad_compatible = final_dtype.is_floating_point or final_dtype.is_complex
+    grad_setting = grad_mode.requires_grad and is_grad_compatible
+    
     return torch.full(
         shape,
         val,
         device=get_device(),
-        dtype=get_precision(),
-        requires_grad=grad_mode.requires_grad,
+        dtype=final_dtype,
+        requires_grad=grad_setting,
     )
 
 
@@ -213,32 +241,40 @@ def arange(*args: float | Tensor, step: float | Tensor = 1) -> Tensor:
 
 
 def zeros_like(x: ArrayLike) -> Tensor:
+    x_t = array(x) # convert to tensor first
+    is_grad_compatible = x_t.dtype.is_floating_point or x_t.dtype.is_complex
+    grad_setting = grad_mode.requires_grad and is_grad_compatible
     return torch.zeros_like(
-        array(x),
+        x_t,
         device=get_device(),
-        dtype=get_precision(),
-        requires_grad=grad_mode.requires_grad,
+        dtype=x_t.dtype,
+        requires_grad=grad_setting,
     )
 
 
 def ones_like(x: ArrayLike) -> Tensor:
+    x_t = array(x)
+    is_grad_compatible = x_t.dtype.is_floating_point or x_t.dtype.is_complex
+    grad_setting = grad_mode.requires_grad and is_grad_compatible
     return torch.ones_like(
-        array(x),
+        x_t,
         device=get_device(),
-        dtype=get_precision(),
-        requires_grad=grad_mode.requires_grad,
+        dtype=x_t.dtype,
+        requires_grad=grad_setting,
     )
 
 
 def full_like(x: ArrayLike, fill_value: float | Tensor) -> Tensor:
     x_t = array(x)
     val = fill_value.item() if isinstance(fill_value, torch.Tensor) else fill_value
+    is_grad_compatible = x_t.dtype.is_floating_point or x_t.dtype.is_complex
+    grad_setting = grad_mode.requires_grad and is_grad_compatible
     return torch.full_like(
         x_t,
         val,
         device=get_device(),
-        dtype=get_precision(),
-        requires_grad=grad_mode.requires_grad,
+        dtype=x_t.dtype,
+        requires_grad=grad_setting,
     )
 
 
@@ -313,7 +349,9 @@ def reshape(x: Tensor, shape: Sequence[int]) -> Tensor:
 
 
 def stack(xs: Sequence[ArrayLike], axis: int = 0) -> Tensor:
-    return torch.stack([cast(x) for x in xs], dim=axis)
+    # Ensure all inputs are tensors before stacking
+    tensors = [array(item) if not isinstance(item, torch.Tensor) else item for item in xs]
+    return torch.stack(tensors, dim=axis)
 
 
 def broadcast_to(x: Tensor, shape: Sequence[int]) -> Tensor:
@@ -509,17 +547,12 @@ def histogram2d(
     nx = x_edges.numel() - 1
     ny = y_edges.numel() - 1
 
-    # Find which bin each point belongs to
-    # torch.searchsorted with right=False gives the insertion index
-    # For histogram, we want the bin index (insertion_index - 1)
     x_bin_indices = torch.searchsorted(x_edges, x, right=False) - 1
     y_bin_indices = torch.searchsorted(y_edges, y, right=False) - 1
 
-    # Clamp to valid bin range [0, n-1]
     x_bin_indices = torch.clamp(x_bin_indices, 0, nx - 1)
     y_bin_indices = torch.clamp(y_bin_indices, 0, ny - 1)
 
-    # Create mask for points within the histogram bounds (inclusive of edges)
     mask = (
         (x >= x_edges[0]) & (x <= x_edges[-1]) & (y >= y_edges[0]) & (y <= y_edges[-1])
     )
@@ -527,19 +560,15 @@ def histogram2d(
     if weights is None:
         weights = torch.ones_like(x)
 
-    # Apply mask to get valid points only
     valid_x_indices = x_bin_indices[mask]
     valid_y_indices = y_bin_indices[mask]
     valid_weights = weights[mask]
 
-    # Convert 2D bin indices to 1D linear indices
     linear_indices = (valid_y_indices * nx + valid_x_indices).long()
 
-    # Create flattened histogram and accumulate weights
     hist_flat = torch.zeros(nx * ny, device=x.device, dtype=valid_weights.dtype)
     hist_flat.index_add_(0, linear_indices, valid_weights)
 
-    # Reshape to 2D form (note: .T transposes to get the right orientation)
     hist = hist_flat.reshape(ny, nx).T
 
     return hist, x_edges, y_edges
@@ -550,12 +579,6 @@ def get_bilinear_weights(
 ) -> tuple[Tensor, Tensor]:
     """
     Calculates differentiable bilinear interpolation weights.
-    This version operates on pixel centers to avoid boundary indexing errors.
-    Inspiration from the paper:
-    "Differentiable design of a double-freeform lens with
-    multi-level radial basis functions for extended
-    source irradiance tailoring"
-    https://doi.org/10.1364/OPTICA.520485
     """
     x_edges, y_edges = bin_edges
     x, y = coords[:, 0].contiguous(), coords[:, 1].contiguous()
@@ -565,25 +588,20 @@ def get_bilinear_weights(
 
     ix = torch.searchsorted(x_centers, x, right=True) - 1
     iy = torch.searchsorted(y_centers, y, right=True) - 1
-    # Clamp indices to the valid range for pixel centers.
-    # The max index is len(centers) - 2 to allow access to ix+1.
     ix = torch.clamp(ix, 0, len(x_centers) - 2)
     iy = torch.clamp(iy, 0, len(y_centers) - 2)
 
     x0, x1 = x_centers[ix], x_centers[ix + 1]
     y0, y1 = y_centers[iy], y_centers[iy + 1]
 
-    # bilinear interpolation weights
     wx = (x - x0) / (x1 - x0 + 1e-9)
     wy = (y - y0) / (y1 - y0 + 1e-9)
 
-    # wEights for the four pixels
     w00 = (1 - wx) * (1 - wy)
     w01 = (1 - wx) * wy
     w10 = wx * (1 - wy)
     w11 = wx * wy
 
-    # stack the indices of the four pixels for each ray
     all_indices = torch.stack(
         [
             torch.stack([ix, iy], dim=1),
@@ -602,8 +620,6 @@ def get_bilinear_weights(
 def copy_to(source: Tensor, destination: Tensor) -> None:
     """
     Performs an in-place copy from source to destination tensor.
-    This version safely handles tensors that require gradients by
-    modifying their underlying data.
     """
     if destination.requires_grad:
         destination.data.copy_(source)
@@ -636,14 +652,11 @@ def cross(
     if axis is not None:
         axisa, axisb, axisc = (axis,) * 3
 
-    # Move the specified axes to the end for `torch.linalg.cross`
     a_moved = torch.movedim(a, axisa, -1)
     b_moved = torch.movedim(b, axisb, -1)
 
-    # Compute the cross product along the last dimension
     c = torch.linalg.cross(a_moved, b_moved, dim=-1)
 
-    # Move the result axis to the specified position
     return torch.movedim(c, -1, axisc)
 
 
@@ -752,12 +765,14 @@ def vectorize(pyfunc: Callable[..., Any]) -> Callable[[Tensor], Tensor]:
 # Conversion and Utilities
 # --------------------------
 def atleast_1d(x: ArrayLike) -> Tensor:
-    t = torch.as_tensor(x, dtype=get_precision())
+    """Ensure input is at least a 1D tensor."""
+    t = array(x)
     return t.unsqueeze(0) if t.ndim == 0 else t
 
 
 def atleast_2d(x: ArrayLike) -> Tensor:
-    t = torch.as_tensor(x, dtype=get_precision())
+    """Ensure input is at least a 2D tensor."""
+    t = array(x)
     if t.ndim == 0:
         return t.unsqueeze(0).unsqueeze(0)
     if t.ndim == 1:
@@ -766,13 +781,9 @@ def atleast_2d(x: ArrayLike) -> Tensor:
 
 
 def as_array_1d(data: ArrayLike) -> Tensor:
-    if isinstance(data, int | float):
-        return array([data])
-    if isinstance(data, list | tuple):
-        return array(data)
-    if is_array_like(data):
-        return array(data).reshape(-1)
-    raise ValueError("Unsupported type for as_array_1d")
+    """Force conversion to a 1D tensor."""
+    t = array(data)
+    return t.reshape(-1)
 
 
 def eye(n: int) -> Tensor:
@@ -793,30 +804,20 @@ def errstate(**kwargs: Any) -> Generator[Any, Any, Any]:
 def path_contains_points(vertices: Tensor, points: Tensor) -> torch.BoolTensor:
     """
     Vectorized ray‐crossing algorithm.
-    vertices: (N,2) tensor of polygon verts in order (closed implicitly: last→first).
-    points:   (M,2) tensor of query points.
-    returns:  BoolTensor of shape (M,) indicating inside‐ness.
     """
-    # split into x/y
     vx, vy = vertices[:, 0], vertices[:, 1]
-    px, py = points[:, 0].unsqueeze(1), points[:, 1].unsqueeze(1)  # (M,1)
+    px, py = points[:, 0].unsqueeze(1), points[:, 1].unsqueeze(1)
 
-    # roll vertices to get edge endpoints
     vx_next = torch.roll(vx, -1)
     vy_next = torch.roll(vy, -1)
 
-    # test if ray crosses the edge in the y‐direction
-    # mask: (M, N) True where edge straddles the horizontal ray from point
     cond = (vy > py) != (vy_next > py)
 
-    # compute intersection point’s x coordinate
     slope = (vx_next - vx) / (vy_next - vy)
     x_int = vx + slope * (py - vy)
 
-    # does the intersection lie to the right of the point?
     cross = cond & (px < x_int)
 
-    # count crossings per point (sum over edges) and take parity
     inside = torch.sum(cross, dim=1) % 2 == 1
     return inside
 
@@ -898,11 +899,13 @@ __all__ = [
     "pad",
     # Vectorization
     "vectorize",
-    # Conversion
+    # --- Start of Fix ---
+    # Conversion (Restored to match numpy_backend API)
     "atleast_1d",
     "atleast_2d",
     "as_array_1d",
     "eye",
+    # --- End of Fix ---
     # Error State
     "errstate",
 ]
