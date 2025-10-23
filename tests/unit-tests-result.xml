@@ -1,66 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="18" time="3.307" timestamp="2025-10-23T14:23:15.553890+08:00" hostname="glaptop-16"><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_executes_without_error[backend=numpy]" time="0.409"><failure message="AssertionError">set_test_backend = None
-
-    def test_grin_propagation_executes_without_error(set_test_backend):
-        """
-        Verify that GRINPropagation completes a propagation between two surfaces
-        without raising an error, and the final z-coordinate is correct.
-        """
-        # 1. SETUP
-        # Define a simple GRIN medium (parabolic index profile, focusing)
-        grin_material = GradientMaterial(n0=1.5, nr2=-0.001)
-    
-        # Define entry and exit surfaces
-        distance = 10.0
-    
-        surface_in = Surface(
-            geometry=StandardGeometry(CoordinateSystem(), radius=be.inf),
-            material_pre=IdealMaterial(n=1.0),
-            material_post=grin_material
-        )
-    
-        surface_out = Surface(
-            geometry=StandardGeometry(CoordinateSystem(z=distance), radius=be.inf),
-            material_pre=grin_material,
-            material_post=IdealMaterial(n=1.0)
-        )
-    
-        # Create rays starting at the origin, one on-axis, one off-axis
-        rays_in = RealRays(
-            x=[0.0, 1.0], y=[0.0, 0.0], z=[0.0, 0.0],
-            L=[0.0, 0.0], M=[0.0, 0.0], N=[1.0, 1.0],
-            intensity=[1.0, 1.0], wavelength=[0.55, 0.55]
-        )
-    
-        # Instantiate the propagation model
-        model = GRINPropagation(step_size=0.1, max_steps=1000)
-    
-        # 2. ACTION
-        # Propagate the rays. This should complete without exceptions.
-        try:
-            rays_out = model.propagate(rays_in, surface_in, surface_out)
-        except Exception as e:
-            pytest.fail(f"GRINPropagation.propagate raised an unexpected exception: {e}")
-    
-        # 3. VERIFICATION
-        # The most basic check: did the rays arrive at the exit surface?
-&gt;       assert_allclose(rays_out.z, be.full_like(rays_out.z, distance), atol=1e-5)
-
-tests\propagation\test_grin.py:60: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-a = array([100.,  10.]), b = array([10., 10.]), rtol = 1e-05, atol = 1e-05
-
-    def assert_allclose(a, b, rtol=1.0e-5, atol=1.0e-7):
-        """Assert that two arrays or tensors are element-wise equal within
-        tolerance.
-        """
-        a = be.to_numpy(a)
-        b = be.to_numpy(b)
-&gt;       assert np.allclose(a, b, rtol=rtol, atol=atol)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-E       AssertionError
-
-tests\utils.py:12: AssertionError</failure></testcase><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_executes_without_error[backend=torch]" time="0.027"><failure message="Failed: GRINPropagation.propagate raised an unexpected exception: ones() got an unexpected keyword argument 'dtype'">set_test_backend = None
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="18" time="1.683" timestamp="2025-10-23T17:09:51.461733+08:00" hostname="glaptop-16"><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_executes_without_error[backend=numpy]" time="0.027" /><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_executes_without_error[backend=torch]" time="0.002"><failure message="Failed: GRINPropagation.propagate raised an unexpected exception: ones() got an unexpected keyword argument 'dtype'">set_test_backend = None
 
     def test_grin_propagation_executes_without_error(set_test_backend):
         """
@@ -111,9 +49,9 @@ optiland\propagation\grin.py:73: in propagate
              ^^^^^^^^^^^^^^^^^^^^^
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000029EB0FB77D0&gt;
+rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x00000177B272DBD0&gt;
 grin_material = GradientMaterial(n0=1.5, nr2=-0.001, nr4=0.0, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
-exit_surface = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000029EAEF45190&gt;
+exit_surface = &lt;optiland.surfaces.standard_surface.Surface object at 0x00000177B272DB50&gt;
 step_size = 0.1, max_steps = 1000
 
     @icontract.require(lambda rays_in: isinstance(rays_in, RealRays))
@@ -202,4 +140,4 @@ set_test_backend = None
 &gt;           pytest.fail(f"GRINPropagation.propagate raised an unexpected exception: {e}")
 E           Failed: GRINPropagation.propagate raised an unexpected exception: ones() got an unexpected keyword argument 'dtype'
 
-tests\propagation\test_grin.py:56: Failed</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=numpy]" time="0.002" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=torch]" time="0.034" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=torch]" time="0.002" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=torch]" time="0.003" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=torch]" time="0.002" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material0-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material1-GRINPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material2-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material0-HomogeneousPropagation]" time="0.002" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material1-GRINPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material2-HomogeneousPropagation]" time="0.013" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=numpy]" time="0.009" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=torch]" time="0.008" /></testsuite></testsuites>
+tests\propagation\test_grin.py:56: Failed</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=torch]" time="0.002" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=torch]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=torch]" time="0.003" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=torch]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material0-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material1-GRINPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material2-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material0-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material1-GRINPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material2-HomogeneousPropagation]" time="0.002" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=numpy]" time="0.013" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=torch]" time="0.010" /></testsuite></testsuites>

@@ -66,6 +66,7 @@ def propagate_through_gradient(
     # its final state will be its state after the last step.
     final_r = be.copy(r)
     final_k = be.copy(k)
+    final_opd = be.copy(opd)
     
     def derivatives(current_r: Any, current_k: Any, w_active: Any) -> tuple[Any, Any]:
         """Helper function to compute derivatives for the RK4 solver."""
@@ -103,28 +104,20 @@ def propagate_through_gradient(
         )
         opd_increment_active = 0.5 * (n_current_active + n_next_active) * step_size
 
-        # --- Functional State Update (Corrected) ---
-        # The `where` function is the key to out-of-place updates.
-        # We construct the 'if_true' argument by scattering the results for active rays
-        # into a full-sized array. A robust way is to use `where` itself for this.
-        
-        # 1. Create temporary full-sized arrays for the new values.
-        r_update = be.copy(r)
-        k_update = be.copy(k)
-        opd_update = be.copy(opd)
-
-        # 2. Use boolean indexing on the copies. For PyTorch, this is allowed if the
-        #    tensor being modified is not a leaf node of the computation graph.
-        #    `copy()` ensures this.
-        r_update[active_rays] = r_next_active
-        k_update[active_rays] = k_next_active
-        opd_update[active_rays] = opd_update[active_rays] + opd_increment_active
-        
-        # 3. Use `where` to create the new state tensors for the next iteration.
+        # --- Functional State Update ---
         active_mask_3d = be.unsqueeze_last(active_rays)
-        r = be.where(active_mask_3d, r_update, r)
-        k = be.where(active_mask_3d, k_update, k)
-        opd = be.where(active_rays, opd_update, opd)
+        
+        r_next = be.copy(r)
+        r_next[active_rays] = r_next_active
+        r = be.where(active_mask_3d, r_next, r)
+        
+        k_next = be.copy(k)
+        k_next[active_rays] = k_next_active
+        k = be.where(active_mask_3d, k_next, k)
+        
+        opd_next = be.copy(opd)
+        opd_next[active_rays] += opd_increment_active
+        opd = be.where(active_rays, opd_next, opd)
 
         # --- Intersection Check ---
         segment_vec = r_next_active - r_active
@@ -142,41 +135,41 @@ def propagate_through_gradient(
         distance_to_intersect = exit_surface.geometry.distance(segment_rays)
         exit_surface.geometry.globalize(segment_rays)
         
-        intersected_mask_local = (distance_to_intersect > 1e-9) & (distance_to_intersect <= segment_len)
+        # Add a small tolerance to prevent floating point errors at the boundary
+        intersected_mask_local = (distance_to_intersect > 1e-9) & (distance_to_intersect <= segment_len + 1e-9)
 
         if be.any(intersected_mask_local):
             active_indices_global = be.where(active_rays)[0]
             intersected_indices_global = active_indices_global[intersected_mask_local]
 
-            intersection_point = r_active[intersected_mask_local] + \
-                be.unsqueeze_last(distance_to_intersect[intersected_mask_local]) * segment_dir[intersected_mask_local]
+            r_intersect_start = r_active[intersected_mask_local]
+            dir_intersect = segment_dir[intersected_mask_local]
+            dist_intersect = distance_to_intersect[intersected_mask_local]
             
-            # Use functional updates for final state storage as well.
-            intersect_mask_full = be.zeros(num_rays, dtype=bool)
-            intersect_mask_full[intersected_indices_global] = True
-            intersect_mask_full_3d = be.unsqueeze_last(intersect_mask_full)
+            intersection_point = r_intersect_start + be.unsqueeze_last(dist_intersect) * dir_intersect
             
-            # Create full-size arrays for `where` by broadcasting the intersection values
-            intersection_point_full = be.broadcast_to(intersection_point, (num_rays, 3))
-            k_next_full = be.broadcast_to(k_next_active[intersected_mask_local], (num_rays, 3))
+            # Update final state for intersected rays
+            final_r[intersected_indices_global] = intersection_point
+            final_k[intersected_indices_global] = k_next_active[intersected_mask_local]
 
-            final_r = be.where(intersect_mask_full_3d, intersection_point_full, final_r)
-            final_k = be.where(intersect_mask_full_3d, k_next_full, final_k)
+            # Update OPD up to the intersection point
+            # Estimate OPD increment for the partial step
+            opd_partial_increment = opd_increment_active[intersected_mask_local] * (dist_intersect / safe_segment_len[intersected_mask_local])
+            # opd at the start of the step for these rays
+            opd_start_of_step = opd[intersected_indices_global] - opd_increment_active[intersected_mask_local]
+            final_opd[intersected_indices_global] = opd_start_of_step + opd_partial_increment
             
-            # Deactivate rays using an out-of-place operation
-            active_rays = active_rays & ~intersect_mask_full
-    else:
-        # After loop, update final state for any rays that are still active
-        final_r = be.where(be.unsqueeze_last(active_rays), r, final_r)
-        final_k = be.where(be.unsqueeze_last(active_rays), k, final_k)
+            # Deactivate rays that have hit the surface
+            active_rays[intersected_indices_global] = False
 
+    # After loop, update final state for any rays that are still active
+    # This happens if max_steps is reached before intersection
     if be.any(active_rays):
-        # This is now a warning instead of an error, as we save the last state.
-        # import warnings
-        # warnings.warn("Some rays did not intersect the exit surface after max steps.")
-        pass
+        final_r[active_rays] = r[active_rays]
+        final_k[active_rays] = k[active_rays]
+        final_opd[active_rays] = opd[active_rays]
 
-    # --- Finalization (Corrected) ---
+    # --- Finalization ---
     n_final, _ = grin_material.get_index_and_gradient(final_r[:, 0], final_r[:, 1], final_r[:, 2], wavelength)
     final_d = final_k / (be.unsqueeze_last(n_final) + 1e-12)
     final_d_norm = be.linalg.norm(final_d, axis=-1)
@@ -189,7 +182,7 @@ def propagate_through_gradient(
         intensity=rays_in.i,
         wavelength=rays_in.w
     )
-    rays_out.opd = opd
+    rays_out.opd = final_opd # Use the correctly calculated OPD
     rays_out.normalize()
     
     return rays_out
