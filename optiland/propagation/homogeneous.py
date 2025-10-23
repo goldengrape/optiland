@@ -4,8 +4,8 @@
 Implements the standard straight-line propagation model for homogeneous media.
 
 This module provides the default propagation behavior for rays traveling through
-a medium with a uniform refractive index, encapsulating the logic previously
-hardcoded in the main trace loop.
+a medium with a uniform refractive index. This implementation favors performance
+by modifying the input rays object in-place.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 class HomogeneousPropagation(BasePropagationModel):
     """
     Handles ray propagation in a straight line through a homogeneous,
-    isotropic medium.
+    isotropic medium by modifying the ray data in-place for maximum performance.
     """
 
     def __init__(self, material: "BaseMaterial" | None = None) -> None:
@@ -33,8 +33,7 @@ class HomogeneousPropagation(BasePropagationModel):
         Initializes the HomogeneousPropagation model.
         
         Args:
-            material: The parent material instance. This reference is stored
-                      to support serialization and introspection patterns.
+            material: The parent material instance.
         """
         self.material = material
 
@@ -45,50 +44,50 @@ class HomogeneousPropagation(BasePropagationModel):
         surface_out: "BaseSurface"
     ) -> "RealRays":
         """
-        Propagates rays from an entry surface to an exit surface in a straight line.
+        Propagates rays from an entry to an exit surface by modifying the
+        `rays_in` object directly.
 
-        This implementation adheres to the functional contract of immutability and
-        correctly handles coordinate system transformations for intersection
-        calculations. It also applies attenuation based on the Beer-Lambert law
-        and ensures output rays are normalized.
+        This method follows a performance-oriented, imperative contract. The state
+        of the `rays_in` object is updated to reflect its new position and
+        properties at the exit surface.
+
+        Returns:
+            The modified `rays_in` object itself, allowing for method chaining.
         """
-        # --- Contract Enforcement: Immutability ---
-        # Create a deep copy of the input rays to ensure the original is not modified.
-        rays_out = rays_in.copy()
+        # --- High-Performance Contract: In-place Modification ---
+        # The 'rays_in' object will be mutated directly. No copy is made.
         
-        # --- Core Logic ---
         # 1. Calculate the geometric distance to the exit surface.
-        #    The surface's geometry object handles any necessary coordinate transforms.
         #    We must localize rays to the exit surface's coordinate system first.
-        surface_out.geometry.localize(rays_out)
-        distance = surface_out.geometry.distance(rays_out)
-        surface_out.geometry.globalize(rays_out) # Return rays to global system
+        surface_out.geometry.localize(rays_in)
+        distance = surface_out.geometry.distance(rays_in)
+        surface_out.geometry.globalize(rays_in) # Return rays to global system
 
-        # 2. Update the final output ray's positions.
-        rays_out.x += distance * rays_out.L
-        rays_out.y += distance * rays_out.M
-        rays_out.z += distance * rays_out.N
+        # 2. Update the ray positions.
+        rays_in.x += distance * rays_in.L
+        rays_in.y += distance * rays_in.M
+        rays_in.z += distance * rays_in.N
 
         # 3. Handle physical effects within the medium.
         medium = surface_in.material_post
         
         # 3a. Update the Optical Path Difference.
-        n = medium.n(rays_out.w)
-        rays_out.opd += n * distance
+        n = medium.n(rays_in.w)
+        rays_in.opd += n * distance
         
         # 3b. Apply attenuation based on Beer-Lambert law if k > 0.
-        k = medium.k(rays_out.w)
+        k = medium.k(rays_in.w)
         # alpha = 4 * pi * k / lambda
         # I = I_0 * exp(-alpha * z)
         # Note: distance is in mm, wavelength w is in um. Convert distance to um.
-        alpha = 4 * be.pi * k / (rays_out.w + 1e-12)
+        alpha = 4 * be.pi * k / (rays_in.w + 1e-12)
         attenuation_factor = be.exp(-alpha * distance * 1e3)
-        rays_out.i *= attenuation_factor
+        rays_in.i *= attenuation_factor
 
         # 4. Ensure final direction cosines are normalized.
-        rays_out.normalize()
+        rays_in.normalize()
 
-        return rays_out
+        return rays_in
 
     @classmethod
     def from_dict(
@@ -96,12 +95,5 @@ class HomogeneousPropagation(BasePropagationModel):
     ) -> "HomogeneousPropagation":
         """
         Creates a HomogeneousPropagation model from a dictionary.
-        
-        Args:
-            d: The dictionary representation of the model.
-            material: The parent material instance, required by the base class factory.
-
-        Returns:
-            An instance of the HomogeneousPropagation model.
         """
         return cls(material=material)

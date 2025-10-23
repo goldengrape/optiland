@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="10" skipped="0" tests="18" time="3.063" timestamp="2025-10-23T11:46:48.474809+08:00" hostname="glaptop-16"><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_executes_without_error[backend=numpy]" time="0.003"><failure message="Failed: GRINPropagation.propagate raised an unexpected exception: name 'RealRays' is not defined">set_test_backend = None
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="6" skipped="0" tests="18" time="1.823" timestamp="2025-10-23T12:16:41.499823+08:00" hostname="glaptop-16"><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_executes_without_error[backend=numpy]" time="0.002"><failure message="Failed: GRINPropagation.propagate raised an unexpected exception: name 'RealRays' is not defined">set_test_backend = None
 
     def test_grin_propagation_executes_without_error(set_test_backend):
         """
@@ -46,10 +46,10 @@ optiland\propagation\grin.py:77: in propagate
     return self._solve_grin_path(
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-self = &lt;optiland.propagation.grin.GRINPropagation object at 0x0000017A08B43050&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000017A0A9A5310&gt;
+self = &lt;optiland.propagation.grin.GRINPropagation object at 0x0000023BF6027DD0&gt;
+rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000023BF6A998D0&gt;
 grin_material = GradientMaterial(n0=1.5, nr2=-0.001, nr4=0.0, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
-exit_surface = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0B0FAE90&gt;
+exit_surface = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BEFF58D50&gt;
 step_size = 0.1, max_steps = 1000
 
     def _solve_grin_path(
@@ -195,7 +195,7 @@ set_test_backend = None
 &gt;           pytest.fail(f"GRINPropagation.propagate raised an unexpected exception: {e}")
 E           Failed: GRINPropagation.propagate raised an unexpected exception: name 'RealRays' is not defined
 
-tests\propagation\test_grin.py:56: Failed</failure></testcase><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_executes_without_error[backend=torch]" time="0.039"><failure message="Failed: GRINPropagation.propagate raised an unexpected exception: too many indices for tensor of dimension 1">set_test_backend = None
+tests\propagation\test_grin.py:56: Failed</failure></testcase><testcase classname="tests.propagation.test_grin" name="test_grin_propagation_executes_without_error[backend=torch]" time="0.002"><failure message="Failed: GRINPropagation.propagate raised an unexpected exception: too many indices for tensor of dimension 1">set_test_backend = None
 
     def test_grin_propagation_executes_without_error(set_test_backend):
         """
@@ -243,10 +243,10 @@ optiland\propagation\grin.py:77: in propagate
     return self._solve_grin_path(
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-self = &lt;optiland.propagation.grin.GRINPropagation object at 0x0000017A0C9BBAD0&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000017A0C9BB190&gt;
+self = &lt;optiland.propagation.grin.GRINPropagation object at 0x0000023BF6CFB690&gt;
+rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000023BF4EDA510&gt;
 grin_material = GradientMaterial(n0=1.5, nr2=-0.001, nr4=0.0, nr6=0.0, nz1=0.0, nz2=0.0, nz3=0.0, name='GRIN Material')
-exit_surface = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A06549890&gt;
+exit_surface = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF543A850&gt;
 step_size = 0.1, max_steps = 1000
 
     def _solve_grin_path(
@@ -327,7 +327,7 @@ set_test_backend = None
 &gt;           pytest.fail(f"GRINPropagation.propagate raised an unexpected exception: {e}")
 E           Failed: GRINPropagation.propagate raised an unexpected exception: too many indices for tensor of dimension 1
 
-tests\propagation\test_grin.py:56: Failed</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=numpy]" time="0.001"><failure message="AttributeError: 'RealRays' object has no attribute 'copy'">set_test_backend = None
+tests\propagation\test_grin.py:56: Failed</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=torch]" time="0.002"><failure message="RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.">set_test_backend = None
 
     def test_homogeneous_propagation_position_update(set_test_backend):
         """Verify that ray coordinates are updated correctly."""
@@ -345,10 +345,10 @@ tests\propagation\test_grin.py:56: Failed</failure></testcase><testcase classnam
 tests\propagation\test_homogeneous.py:47: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000017A0CD58D10&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000017A0CD59710&gt;
-surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0CD58810&gt;
-surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0CD58790&gt;
+self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000023BF7099BD0&gt;
+rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000023BF7098650&gt;
+surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF7099AD0&gt;
+surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF7099E90&gt;
 
     def propagate(
         self,
@@ -357,63 +357,39 @@ surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017
         surface_out: "BaseSurface"
     ) -&gt; "RealRays":
         """
-        Propagates rays from an entry surface to an exit surface in a straight line.
+        Propagates rays from an entry to an exit surface by modifying the
+        `rays_in` object directly.
     
-        This implementation adheres to the functional contract of immutability and
-        correctly handles coordinate system transformations for intersection
-        calculations. It also applies attenuation based on the Beer-Lambert law
-        and ensures output rays are normalized.
-        """
-        # --- Contract Enforcement: Immutability ---
-        # Create a deep copy of the input rays to ensure the original is not modified.
-&gt;       rays_out = rays_in.copy()
-                   ^^^^^^^^^^^^
-E       AttributeError: 'RealRays' object has no attribute 'copy'
-
-optiland\propagation\homogeneous.py:57: AttributeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_position_update[backend=torch]" time="0.001"><failure message="AttributeError: 'RealRays' object has no attribute 'copy'">set_test_backend = None
-
-    def test_homogeneous_propagation_position_update(set_test_backend):
-        """Verify that ray coordinates are updated correctly."""
-        # setup
-        rays_in = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
-        material = IdealMaterial(n=1.5)
-        distance = 10.0
-        surface_in, surface_out = create_test_surfaces(distance, material)
-        model = HomogeneousPropagation(material)
+        This method follows a performance-oriented, imperative contract. The state
+        of the `rays_in` object is updated to reflect its new position and
+        properties at the exit surface.
     
-        # action
-&gt;       rays_out = model.propagate(rays_in, surface_in, surface_out)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-tests\propagation\test_homogeneous.py:47: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000017A0CD01090&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000017A0B830810&gt;
-surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0CD00DD0&gt;
-surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0CD00F90&gt;
-
-    def propagate(
-        self,
-        rays_in: "RealRays",
-        surface_in: "BaseSurface",
-        surface_out: "BaseSurface"
-    ) -&gt; "RealRays":
+        Returns:
+            The modified `rays_in` object itself, allowing for method chaining.
         """
-        Propagates rays from an entry surface to an exit surface in a straight line.
+        # --- High-Performance Contract: In-place Modification ---
+        # The 'rays_in' object will be mutated directly. No copy is made.
     
-        This implementation adheres to the functional contract of immutability and
-        correctly handles coordinate system transformations for intersection
-        calculations. It also applies attenuation based on the Beer-Lambert law
-        and ensures output rays are normalized.
-        """
-        # --- Contract Enforcement: Immutability ---
-        # Create a deep copy of the input rays to ensure the original is not modified.
-&gt;       rays_out = rays_in.copy()
-                   ^^^^^^^^^^^^
-E       AttributeError: 'RealRays' object has no attribute 'copy'
+        # 1. Calculate the geometric distance to the exit surface.
+        #    We must localize rays to the exit surface's coordinate system first.
+        surface_out.geometry.localize(rays_in)
+        distance = surface_out.geometry.distance(rays_in)
+        surface_out.geometry.globalize(rays_in) # Return rays to global system
+    
+        # 2. Update the ray positions.
+        rays_in.x += distance * rays_in.L
+        rays_in.y += distance * rays_in.M
+        rays_in.z += distance * rays_in.N
+    
+        # 3. Handle physical effects within the medium.
+        medium = surface_in.material_post
+    
+        # 3a. Update the Optical Path Difference.
+        n = medium.n(rays_in.w)
+&gt;       rays_in.opd += n * distance
+E       RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.
 
-optiland\propagation\homogeneous.py:57: AttributeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=numpy]" time="0.001"><failure message="AttributeError: 'RealRays' object has no attribute 'copy'">set_test_backend = None
+optiland\propagation\homogeneous.py:76: RuntimeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=torch]" time="0.001"><failure message="RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.">set_test_backend = None
 
     def test_homogeneous_propagation_no_attenuation_with_k0(set_test_backend):
         """Verify ray intensity is unchanged when k=0."""
@@ -433,10 +409,10 @@ optiland\propagation\homogeneous.py:57: AttributeError</failure></testcase><test
 tests\propagation\test_homogeneous.py:67: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000017A0C9C5A90&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000017A0C9C7450&gt;
-surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0C9C5990&gt;
-surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0C9C58D0&gt;
+self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000023BF7089710&gt;
+rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000023BF7089950&gt;
+surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF3218ED0&gt;
+surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF7089B90&gt;
 
     def propagate(
         self,
@@ -445,65 +421,39 @@ surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017
         surface_out: "BaseSurface"
     ) -&gt; "RealRays":
         """
-        Propagates rays from an entry surface to an exit surface in a straight line.
+        Propagates rays from an entry to an exit surface by modifying the
+        `rays_in` object directly.
     
-        This implementation adheres to the functional contract of immutability and
-        correctly handles coordinate system transformations for intersection
-        calculations. It also applies attenuation based on the Beer-Lambert law
-        and ensures output rays are normalized.
+        This method follows a performance-oriented, imperative contract. The state
+        of the `rays_in` object is updated to reflect its new position and
+        properties at the exit surface.
+    
+        Returns:
+            The modified `rays_in` object itself, allowing for method chaining.
         """
-        # --- Contract Enforcement: Immutability ---
-        # Create a deep copy of the input rays to ensure the original is not modified.
-&gt;       rays_out = rays_in.copy()
-                   ^^^^^^^^^^^^
-E       AttributeError: 'RealRays' object has no attribute 'copy'
-
-optiland\propagation\homogeneous.py:57: AttributeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_no_attenuation_with_k0[backend=torch]" time="0.005"><failure message="AttributeError: 'RealRays' object has no attribute 'copy'">set_test_backend = None
-
-    def test_homogeneous_propagation_no_attenuation_with_k0(set_test_backend):
-        """Verify ray intensity is unchanged when k=0."""
-        # setup
-        rays_in = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
-        material = IdealMaterial(n=1.0, k=0.0)
-        distance = 10.0
-        surface_in, surface_out = create_test_surfaces(distance, material)
-        model = HomogeneousPropagation(material)
+        # --- High-Performance Contract: In-place Modification ---
+        # The 'rays_in' object will be mutated directly. No copy is made.
     
-        initial_intensity = be.copy(rays_in.i)
+        # 1. Calculate the geometric distance to the exit surface.
+        #    We must localize rays to the exit surface's coordinate system first.
+        surface_out.geometry.localize(rays_in)
+        distance = surface_out.geometry.distance(rays_in)
+        surface_out.geometry.globalize(rays_in) # Return rays to global system
     
-        # action
-&gt;       rays_out = model.propagate(rays_in, surface_in, surface_out)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-tests\propagation\test_homogeneous.py:67: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000017A0CD50690&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000017A0CD51C50&gt;
-surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0CD50310&gt;
-surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0CD50650&gt;
-
-    def propagate(
-        self,
-        rays_in: "RealRays",
-        surface_in: "BaseSurface",
-        surface_out: "BaseSurface"
-    ) -&gt; "RealRays":
-        """
-        Propagates rays from an entry surface to an exit surface in a straight line.
+        # 2. Update the ray positions.
+        rays_in.x += distance * rays_in.L
+        rays_in.y += distance * rays_in.M
+        rays_in.z += distance * rays_in.N
     
-        This implementation adheres to the functional contract of immutability and
-        correctly handles coordinate system transformations for intersection
-        calculations. It also applies attenuation based on the Beer-Lambert law
-        and ensures output rays are normalized.
-        """
-        # --- Contract Enforcement: Immutability ---
-        # Create a deep copy of the input rays to ensure the original is not modified.
-&gt;       rays_out = rays_in.copy()
-                   ^^^^^^^^^^^^
-E       AttributeError: 'RealRays' object has no attribute 'copy'
+        # 3. Handle physical effects within the medium.
+        medium = surface_in.material_post
+    
+        # 3a. Update the Optical Path Difference.
+        n = medium.n(rays_in.w)
+&gt;       rays_in.opd += n * distance
+E       RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.
 
-optiland\propagation\homogeneous.py:57: AttributeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=numpy]" time="0.001"><failure message="AttributeError: 'RealRays' object has no attribute 'copy'">set_test_backend = None
+optiland\propagation\homogeneous.py:76: RuntimeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=numpy]" time="0.001" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=torch]" time="0.001"><failure message="RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.">set_test_backend = None
 
     def test_homogeneous_propagation_attenuation_with_k_gt_0(set_test_backend):
         """Verify ray intensity is correctly attenuated when k &gt; 0."""
@@ -526,10 +476,10 @@ optiland\propagation\homogeneous.py:57: AttributeError</failure></testcase><test
 tests\propagation\test_homogeneous.py:88: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000017A0CD49010&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000017A082909D0&gt;
-surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0C7E5B10&gt;
-surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0BC42A50&gt;
+self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000023BF709B6D0&gt;
+rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000023BF70994D0&gt;
+surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF709BF90&gt;
+surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF709BC10&gt;
 
     def propagate(
         self,
@@ -538,68 +488,39 @@ surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017
         surface_out: "BaseSurface"
     ) -&gt; "RealRays":
         """
-        Propagates rays from an entry surface to an exit surface in a straight line.
+        Propagates rays from an entry to an exit surface by modifying the
+        `rays_in` object directly.
     
-        This implementation adheres to the functional contract of immutability and
-        correctly handles coordinate system transformations for intersection
-        calculations. It also applies attenuation based on the Beer-Lambert law
-        and ensures output rays are normalized.
+        This method follows a performance-oriented, imperative contract. The state
+        of the `rays_in` object is updated to reflect its new position and
+        properties at the exit surface.
+    
+        Returns:
+            The modified `rays_in` object itself, allowing for method chaining.
         """
-        # --- Contract Enforcement: Immutability ---
-        # Create a deep copy of the input rays to ensure the original is not modified.
-&gt;       rays_out = rays_in.copy()
-                   ^^^^^^^^^^^^
-E       AttributeError: 'RealRays' object has no attribute 'copy'
-
-optiland\propagation\homogeneous.py:57: AttributeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_attenuation_with_k_gt_0[backend=torch]" time="0.003"><failure message="AttributeError: 'RealRays' object has no attribute 'copy'">set_test_backend = None
-
-    def test_homogeneous_propagation_attenuation_with_k_gt_0(set_test_backend):
-        """Verify ray intensity is correctly attenuated when k &gt; 0."""
-        # setup
-        rays_in = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
-        k_val = 0.1
-        distance = 10.0  # distance in mm
-        wavelength = be.to_numpy(rays_in.w)[0]
+        # --- High-Performance Contract: In-place Modification ---
+        # The 'rays_in' object will be mutated directly. No copy is made.
     
-        material = IdealMaterial(n=1.0, k=k_val)
-        surface_in, surface_out = create_test_surfaces(distance, material)
-        model = HomogeneousPropagation(material)
+        # 1. Calculate the geometric distance to the exit surface.
+        #    We must localize rays to the exit surface's coordinate system first.
+        surface_out.geometry.localize(rays_in)
+        distance = surface_out.geometry.distance(rays_in)
+        surface_out.geometry.globalize(rays_in) # Return rays to global system
     
-        initial_intensity = be.to_numpy(rays_in.i)[0]
+        # 2. Update the ray positions.
+        rays_in.x += distance * rays_in.L
+        rays_in.y += distance * rays_in.M
+        rays_in.z += distance * rays_in.N
     
-        # action
-&gt;       rays_out = model.propagate(rays_in, surface_in, surface_out)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-tests\propagation\test_homogeneous.py:88: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000017A0CD00910&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000017A0CD030D0&gt;
-surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0CD03B10&gt;
-surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0CD03550&gt;
-
-    def propagate(
-        self,
-        rays_in: "RealRays",
-        surface_in: "BaseSurface",
-        surface_out: "BaseSurface"
-    ) -&gt; "RealRays":
-        """
-        Propagates rays from an entry surface to an exit surface in a straight line.
+        # 3. Handle physical effects within the medium.
+        medium = surface_in.material_post
     
-        This implementation adheres to the functional contract of immutability and
-        correctly handles coordinate system transformations for intersection
-        calculations. It also applies attenuation based on the Beer-Lambert law
-        and ensures output rays are normalized.
-        """
-        # --- Contract Enforcement: Immutability ---
-        # Create a deep copy of the input rays to ensure the original is not modified.
-&gt;       rays_out = rays_in.copy()
-                   ^^^^^^^^^^^^
-E       AttributeError: 'RealRays' object has no attribute 'copy'
+        # 3a. Update the Optical Path Difference.
+        n = medium.n(rays_in.w)
+&gt;       rays_in.opd += n * distance
+E       RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.
 
-optiland\propagation\homogeneous.py:57: AttributeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=numpy]" time="0.001"><failure message="AttributeError: 'RealRays' object has no attribute 'copy'">set_test_backend = None
+optiland\propagation\homogeneous.py:76: RuntimeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=numpy]" time="0.002" /><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=torch]" time="0.002"><failure message="RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.">set_test_backend = None
 
     def test_homogeneous_propagation_normalizes_rays(set_test_backend):
         """Verify that unnormalized rays are normalized after propagation."""
@@ -621,10 +542,10 @@ optiland\propagation\homogeneous.py:57: AttributeError</failure></testcase><test
 tests\propagation\test_homogeneous.py:115: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
-self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000017A0CD4A350&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000017A0AA17450&gt;
-surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0CD4A510&gt;
-surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0CD4A7D0&gt;
+self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000023BF7089E50&gt;
+rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000023BF708B9D0&gt;
+surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF708AC10&gt;
+surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000023BF7088FD0&gt;
 
     def propagate(
         self,
@@ -633,64 +554,36 @@ surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017
         surface_out: "BaseSurface"
     ) -&gt; "RealRays":
         """
-        Propagates rays from an entry surface to an exit surface in a straight line.
+        Propagates rays from an entry to an exit surface by modifying the
+        `rays_in` object directly.
     
-        This implementation adheres to the functional contract of immutability and
-        correctly handles coordinate system transformations for intersection
-        calculations. It also applies attenuation based on the Beer-Lambert law
-        and ensures output rays are normalized.
+        This method follows a performance-oriented, imperative contract. The state
+        of the `rays_in` object is updated to reflect its new position and
+        properties at the exit surface.
+    
+        Returns:
+            The modified `rays_in` object itself, allowing for method chaining.
         """
-        # --- Contract Enforcement: Immutability ---
-        # Create a deep copy of the input rays to ensure the original is not modified.
-&gt;       rays_out = rays_in.copy()
-                   ^^^^^^^^^^^^
-E       AttributeError: 'RealRays' object has no attribute 'copy'
-
-optiland\propagation\homogeneous.py:57: AttributeError</failure></testcase><testcase classname="tests.propagation.test_homogeneous" name="test_homogeneous_propagation_normalizes_rays[backend=torch]" time="0.001"><failure message="AttributeError: 'RealRays' object has no attribute 'copy'">set_test_backend = None
-
-    def test_homogeneous_propagation_normalizes_rays(set_test_backend):
-        """Verify that unnormalized rays are normalized after propagation."""
-        # setup
-        rays_in = RealRays(x=[0], y=[0], z=[0], L=[0], M=[0], N=[1], intensity=[1.0], wavelength=[0.5])
-        material = IdealMaterial(n=1.0)
-        distance = 10.0
-        surface_in, surface_out = create_test_surfaces(distance, material)
-        model = HomogeneousPropagation(material)
+        # --- High-Performance Contract: In-place Modification ---
+        # The 'rays_in' object will be mutated directly. No copy is made.
     
-        # Manually un-normalize the rays
-        rays_in.L = rays_in.L * 2.0
-        rays_in.is_normalized = False
+        # 1. Calculate the geometric distance to the exit surface.
+        #    We must localize rays to the exit surface's coordinate system first.
+        surface_out.geometry.localize(rays_in)
+        distance = surface_out.geometry.distance(rays_in)
+        surface_out.geometry.globalize(rays_in) # Return rays to global system
     
-        # action
-&gt;       rays_out = model.propagate(rays_in, surface_in, surface_out)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-tests\propagation\test_homogeneous.py:115: 
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-
-self = &lt;optiland.propagation.homogeneous.HomogeneousPropagation object at 0x0000017A0CD392D0&gt;
-rays_in = &lt;optiland.rays.real_rays.RealRays object at 0x0000017A0C9BB190&gt;
-surface_in = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A0CD39150&gt;
-surface_out = &lt;optiland.surfaces.standard_surface.Surface object at 0x0000017A08E29250&gt;
-
-    def propagate(
-        self,
-        rays_in: "RealRays",
-        surface_in: "BaseSurface",
-        surface_out: "BaseSurface"
-    ) -&gt; "RealRays":
-        """
-        Propagates rays from an entry surface to an exit surface in a straight line.
+        # 2. Update the ray positions.
+        rays_in.x += distance * rays_in.L
+        rays_in.y += distance * rays_in.M
+        rays_in.z += distance * rays_in.N
     
-        This implementation adheres to the functional contract of immutability and
-        correctly handles coordinate system transformations for intersection
-        calculations. It also applies attenuation based on the Beer-Lambert law
-        and ensures output rays are normalized.
-        """
-        # --- Contract Enforcement: Immutability ---
-        # Create a deep copy of the input rays to ensure the original is not modified.
-&gt;       rays_out = rays_in.copy()
-                   ^^^^^^^^^^^^
-E       AttributeError: 'RealRays' object has no attribute 'copy'
+        # 3. Handle physical effects within the medium.
+        medium = surface_in.material_post
+    
+        # 3a. Update the Optical Path Difference.
+        n = medium.n(rays_in.w)
+&gt;       rays_in.opd += n * distance
+E       RuntimeError: a leaf Variable that requires grad is being used in an in-place operation.
 
-optiland\propagation\homogeneous.py:57: AttributeError</failure></testcase><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material0-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material1-GRINPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material2-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material0-HomogeneousPropagation]" time="0.004" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material1-GRINPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material2-HomogeneousPropagation]" time="0.011" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=numpy]" time="0.010" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=torch]" time="0.005" /></testsuite></testsuites>
+optiland\propagation\homogeneous.py:76: RuntimeError</failure></testcase><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material0-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material1-GRINPropagation]" time="0.000" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=numpy-material2-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material0-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material1-GRINPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_optic_serialization_round_trip[backend=torch-material2-HomogeneousPropagation]" time="0.001" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=numpy]" time="0.010" /><testcase classname="tests.propagation.test_serialization" name="test_material_file_serialization_round_trip[backend=torch]" time="0.004" /></testsuite></testsuites>
