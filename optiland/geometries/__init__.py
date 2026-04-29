@@ -10,10 +10,12 @@ from .chebyshev import ChebyshevPolynomialGeometry
 from .even_asphere import EvenAsphere
 from .forbes import (
     ForbesQ2dGeometry,
-    ForbesQbfsGeometry,
+    ForbesQbfsGeometry,  # Deprecated alias
+    ForbesQNormalSlopeGeometry,
     ForbesSolverConfig,
     ForbesSurfaceConfig,
 )
+from .grid_sag import GridSagGeometry
 from .newton_raphson import NewtonRaphsonGeometry
 from .nurbs import NurbsGeometry
 from .odd_asphere import OddAsphere
@@ -56,9 +58,12 @@ __all__ = [
     "ZernikePolynomialGeometry",
     # From forbes subpackage
     "ForbesQ2dGeometry",
-    "ForbesQbfsGeometry",
+    "ForbesQNormalSlopeGeometry",
+    "ForbesQbfsGeometry",  # Deprecated alias for backward compatibility
     "ForbesSurfaceConfig",
     "ForbesSolverConfig",
     # From nurbs subpackage
     "NurbsGeometry",
+    # From grid_sag.py
+    "GridSagGeometry",
 ]

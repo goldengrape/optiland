@@ -1,6 +1,8 @@
-import optiland.backend as be
+from __future__ import annotations
+
 import pytest
 
+import optiland.backend as be
 from optiland.rays import (
     BaseRays,
     ParaxialRays,
@@ -91,42 +93,42 @@ def test_real_rays_init(set_test_backend):
 
     assert isinstance(rays.x, be.ndarray)
     assert rays.x.shape == (1,)
-    assert rays.x.dtype == be.array(x).dtype
+    assert rays.x.dtype == be.array(1.0).dtype
     assert_allclose(rays.x[0], 1.0)
 
     assert isinstance(rays.y, be.ndarray)
     assert rays.y.shape == (1,)
-    assert rays.y.dtype == be.array(y).dtype
+    assert rays.y.dtype == be.array(1.0).dtype
     assert_allclose(rays.y[0], 2.0)
 
     assert isinstance(rays.z, be.ndarray)
     assert rays.z.shape == (1,)
-    assert rays.z.dtype == be.array(z).dtype
+    assert rays.z.dtype == be.array(1.0).dtype
     assert_allclose(rays.z[0], 3.0)
 
     assert isinstance(rays.L, be.ndarray)
     assert rays.L.shape == (1,)
-    assert rays.L.dtype == be.array(L).dtype
+    assert rays.L.dtype == be.array(1.0).dtype
     assert_allclose(rays.L[0], 4.0)
 
     assert isinstance(rays.M, be.ndarray)
     assert rays.M.shape == (1,)
-    assert rays.M.dtype == be.array(M).dtype
+    assert rays.M.dtype == be.array(1.0).dtype
     assert_allclose(rays.M[0], 5.0)
 
     assert isinstance(rays.N, be.ndarray)
     assert rays.N.shape == (1,)
-    assert rays.N.dtype == be.array(N).dtype
+    assert rays.N.dtype == be.array(1.0).dtype
     assert_allclose(rays.N[0], 6.0)
 
     assert isinstance(rays.i, be.ndarray)
     assert rays.i.shape == (1,)
-    assert rays.i.dtype == be.array(intensity).dtype
+    assert rays.i.dtype == be.array(1.0).dtype
     assert_allclose(rays.i[0], 7.0)
 
     assert isinstance(rays.w, be.ndarray)
     assert rays.w.shape == (1,)
-    assert rays.w.dtype == be.array(wavelength).dtype
+    assert rays.w.dtype == be.array(1.0).dtype
     assert_allclose(rays.w[0], 8.0)
 
     assert isinstance(rays.opd, be.ndarray)
@@ -749,13 +751,13 @@ class TestRayGenerator:
         with pytest.raises(ValueError):
             generator.generate_rays(Hx, Hy, Px, Py, wavelength)
 
-        lens.set_field_type("angle")
+        lens.fields.set_type("angle")
         with pytest.raises(ValueError):
             generator.generate_rays(Hx, Hy, Px, Py, wavelength)
 
     def test_invalid_polarization(self):
         lens = TessarLens()
-        lens.surface_group.set_fresnel_coatings()
+        lens.surfaces.set_fresnel_coatings()
         generator = RayGenerator(lens)
 
         Hx = 0.5
@@ -777,7 +779,7 @@ class TestRayGenerator:
 
         lens = TessarLens()
         state = PolarizationState(is_polarized=False)
-        lens.set_polarization(state)
+        lens.updater.set_polarization(state)
         generator = RayGenerator(lens)
         rays = generator.generate_rays(Hx, Hy, Px, Py, wavelength)
 
@@ -819,7 +821,7 @@ class TestRayGenerator:
 
     def test_get_ray_origins_invalid_field_type(self):
         lens = TessarLens()
-        lens.set_field_type("object_height")
+        lens.fields.set_type("object_height")
         generator = RayGenerator(lens)
 
         Hx = 0.5
@@ -852,8 +854,8 @@ class TestOpticTrace:
     def sample_optic(self):
         """Provides a configured TessarLens instance for tracing tests."""
         optic = TessarLens()
-        optic.add_field(y=0.7)
-        optic.add_field(y=1.0)
+        optic.fields.add(y=0.7)
+        optic.fields.add(y=1.0)
         return optic
 
     def test_trace_single_field_scalar_input(self, sample_optic):
@@ -871,12 +873,13 @@ class TestOpticTrace:
 
     def test_trace_multiple_fields_array_input(self, sample_optic):
         """Tests .trace() with multiple field points using array inputs for Hx, Hy."""
-        num_rays_grid_size = 20  
+        num_rays_grid_size = 20
         num_fields = 2
         Hx_all = be.array([0.0, 0.0])
         Hy_all = be.array([0.7, 1.0])
 
         from optiland.distribution import create_distribution
+
         dist = create_distribution("uniform")
         dist.generate_points(num_rays_grid_size)
         num_pupil_points = len(dist.x)
@@ -913,7 +916,7 @@ class TestOpticTrace:
 
     def test_trace_generic_multiple_fields_and_pupil_points(self, sample_optic):
         """Tests .trace_generic() with manually expanded arrays for all coordinates."""
-        
+
         Hx_in = be.array([0.0, 0.5])
         Hy_in = be.array([0.7, 0.5])
         Px_in = be.array([-0.5, 0.5])

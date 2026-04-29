@@ -61,6 +61,7 @@ class Wavefront:
         num_rays: int = 12,
         distribution: DistributionType = "hexapolar",
         strategy: WavefrontStrategyType = "chief_ray",
+        afocal: bool = False,
         remove_tilt: bool = False,
         **kwargs,
     ):
@@ -70,10 +71,12 @@ class Wavefront:
         self.num_rays = num_rays
         self.distribution = self._resolve_distribution(distribution, self.num_rays)
 
+        reference_type = "plane" if afocal else "sphere"
         self.strategy = create_strategy(
             strategy_name=strategy,
             optic=self.optic,
             distribution=self.distribution,
+            reference_type=reference_type,
             **kwargs,
         )
         self.remove_tilt = remove_tilt
@@ -85,12 +88,16 @@ class Wavefront:
         """Retrieves precomputed wavefront data for a field and wavelength.
 
         Args:
-            field (tuple[float, float]): The field coordinates.
-            wl (float): The wavelength.
+            field (tuple[float, float]): The field coordinates, or a FieldPoint.
+            wl (float): The wavelength in µm, or a WavelengthPoint.
 
         Returns:
             WavefrontData: A data container with the computed wavefront results.
         """
+        if hasattr(field, "coord"):
+            field = field.coord
+        if hasattr(wl, "value"):
+            wl = wl.value
         return self.data[(field, wl)]
 
     @staticmethod
@@ -157,8 +164,10 @@ class Wavefront:
         This method iterates through each field and wavelength pair and
         delegates the computation to the selected strategy object.
         """
-        for field in self.fields:
-            for wl in self.wavelengths:
+        for fp in self.fields:
+            field = fp.coord
+            for wp in self.wavelengths:
+                wl = wp.value
                 data = self.strategy.compute_wavefront_data(field, wl)
 
                 if self.remove_tilt:

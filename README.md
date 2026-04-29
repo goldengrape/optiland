@@ -1,8 +1,8 @@
-![Tests](https://github.com/HarrisonKramer/optiland/actions/workflows/ci.yml/badge.svg?label=Tests)
+![Tests](https://github.com/optiland/optiland/actions/workflows/ci.yml/badge.svg?label=Tests)
 [![Documentation Status](https://readthedocs.org/projects/optiland/badge/?version=latest)](https://optiland.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/github/HarrisonKramer/optiland/graph/badge.svg?token=KAOE152K5O)](https://codecov.io/github/HarrisonKramer/optiland)
-[![Maintainability](https://qlty.sh/gh/HarrisonKramer/projects/optiland/maintainability.svg)](https://qlty.sh/gh/HarrisonKramer/projects/optiland)
-![Stars](https://img.shields.io/github/stars/HarrisonKramer/optiland.svg)
+[![codecov](https://codecov.io/github/optiland/optiland/graph/badge.svg?token=KAOE152K5O)](https://codecov.io/github/optiland/optiland)
+[![Maintainability](https://qlty.sh/gh/optiland/projects/optiland/maintainability.svg)](https://qlty.sh/gh/optiland/projects/optiland)
+![Stars](https://img.shields.io/github/stars/optiland/optiland.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14588961.svg)](https://doi.org/10.5281/zenodo.14588961)
 [![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%7C%203.12%20%7C%203.13%20-blue)](https://img.shields.io/badge/python-3.10%20%7C%203.11%7C%203.12%20%7C%203.13%20-blue)
@@ -10,12 +10,12 @@
 
 <div align="center">
   <a href="https://optiland.readthedocs.io/">
-    <img src="https://github.com/HarrisonKramer/optiland/raw/master/docs/images/optiland.svg" alt="Optiland">
+    <img src="https://github.com/optiland/optiland/raw/master/docs/images/optiland.svg" alt="Optiland">
   </a>
 </div>
 
 <div align="center">
-    <img src="https://github.com/HarrisonKramer/optiland/raw/master/docs/images/gui.png" alt="Optiland GUI" style="max-width: 100%; height: auto;">
+    <img src="https://github.com/optiland/optiland/raw/master/docs/images/gui.png" alt="Optiland GUI" style="max-width: 100%; height: auto;">
 </div>
 
 <p align="center"><em>The Optiland GUI showing a reverse telephoto system.</em></p>
@@ -29,7 +29,7 @@
 4. [Core capabilities](#core-capabilities)
 5. [Learning Guide](#learning-guide)
 6. [Roadmap](#roadmap)
-7. [Under development](#under-development)
+7. [Get Involved](#get-involved)
 8. [Contributing](#contributing)
 9. [License](#license)
 10. [Contact and Support](#contact-and-support)
@@ -128,67 +128,69 @@ For a full breakdown of Optiland’s functionalities, see the [complete feature 
 
 
 
-## Roadmap
+## 🗺️ Roadmap
 
-Optiland is continually evolving to provide new functionalities for optical design and analysis. Below are some of the planned features and enhancements we aim to implement in future versions:
+Optiland is continually evolving to provide new functionalities for optical design and analysis. Below are some of the planned features and enhancements we aim to implement in future versions. We welcome contributions in any of these areas:
 
-- [x] **GUI (PySide6-based)** - *Initial version available, ongoing enhancements.*
+### Physics & Core Engine
+- [ ] **Non-sequential Ray Tracing** (Ghost analysis, stray light, etc.)
+- [ ] **Physical Optics Propagation** (Diffraction, beam clipping, Gaussian beam evolution)
 - [ ] **Multi-Path Sequential Ray Tracing**
-- [ ] **Multiple Configurations (Zoom Lenses)**
-- [ ] **Thin Film Design and Optimization** 
-- [ ] **Jones Pupils**
-- [ ] **Additional Freeforms (Superconic, etc.)**
-- [ ] **Image Simulation**
-- [ ] **Interferogram Analysis**
-- [ ] **Additional Tutorials/Examples**
-- [ ] **Non-sequential ray tracing**
-- [ ] **Insert your idea here...**
+- [ ] **Thin Film Design** (Coatings, polarization effects)
+- [ ] **Additional Freeforms** (Superconic, etc.)
+
+### Optimization & Algorithms
+- [ ] **Global Optimization Routines** (Genetic Algorithms, Particle Swarm, etc.)
+- [ ] **AI-Assisted Starting Points** (Database lookup or ML-based design initialization)
+
+### Engineering & Interoperability
+- [ ] **ISO 10110 Drawing Generator** (Automated fabrication prints)
+- [ ] **CAD Export** (STEP/IGES solid body generation)
+- [ ] **Interferogram Analysis** (Experimental data import and phase unwrapping)
+- [ ] **Cost Estimator** (Glass density & volume pricing heuristics)
+
+### 💡 The "Wildcard"
+- [ ] **Your Idea Here:** Have an idea for a new feature, tool, or analysis? Open an issue and let's discuss it!
 
 
-## Under Development
+## 🚧 Get Involved
 
-Welcome, contributors! This section outlines the major features and tasks that are currently in progress. To avoid duplicated effort, **please check this table and the [GitHub Issues](https://github.com/HarrisonKramer/optiland/issues)** before starting work. If you’d like to work on something, **comment on the issue to let others know.** You can find more about how to coordinate in our [contributing guide](./CONTRIBUTING.md).
+Optiland is built by the community, for the community. We are actively looking for contributors, whether you are an optical engineer, a Python developer, or a student looking to learn.
 
-| Feature / Topic | Contributor(s) | Status | Discussion / Issue |
-| ------------------------------------------------ | -------------------------------------------------- | -------------- | ------------------------------------------------ |
-| **Core** |                                                    |                |                                                  |
-| (extended) Sources | [@manuelFragata](https://github.com/manuelFragata) | 🚧 In Progress | [#224](https://github.com/HarrisonKramer/optiland/issues/224) |
-| Multi Sequence Tracing | [@HarrisonKramer](https://github.com/HarrisonKramer) | 🔍 Under Review | [#89](https://github.com/HarrisonKramer/optiland/issues/89)   |
-| Image Simulation Analysis | [@HarrisonKramer](https://github.com/HarrisonKramer) | 🚧 In Progress | [#153](https://github.com/HarrisonKramer/optiland/issues/153) |
-| Diffraction Gratings and DOEs| [@Hhsoj](https://github.com/Hhsoj) [@mattemilio](https://github.com/mattemilio) | 🚧 In Progress | [#161](https://github.com/HarrisonKramer/optiland/issues/161) [#188](https://github.com/HarrisonKramer/optiland/discussions/188) [#225](https://github.com/HarrisonKramer/optiland/issues/225) |
-| **GUI** |                                                    |                |                                                  |
-| Code Cleanup | [@manuelFragata](https://github.com/manuelFragata)| 🚧 In Progress | - |
+**Where to start?**
+We curate issues specifically for new contributors. Click the badges below to find a task:
 
+[![Good First Issues](https://img.shields.io/github/issues/optiland/optiland/good%20first%20issue?color=7057ff&label=Good%20First%20Issues)](https://github.com/optiland/optiland/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
+*Perfect for your first PR. These are self-contained and well-defined.*
 
-**Status**
-* ✨ **Help Wanted**: We are actively looking for contributors for this task!
-* 🚧 **In Progress**: Actively being worked on.
-* 🔍 **Under Review**: A pull request has been submitted and is being reviewed.
-* 🛑 **Blocked**: Progress is blocked by another issue.
-* ✅ **Done**: Completed and merged.
+[![Help Wanted](https://img.shields.io/github/issues/optiland/optiland/help%20wanted?color=008672&label=Help%20Wanted)](https://github.com/optiland/optiland/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22)
+*Slightly larger tasks where we need your expertise.*
+
+[![Discussion](https://img.shields.io/github/discussions/optiland/optiland?color=0e8a16&label=Join%20the%20Discussion)](https://github.com/optiland/optiland/discussions)
+*Have a feature idea? Want to show off a design? Talk to us here.*
 
 
 ## Contributing
 
-We welcome contributions of all kinds — features, bugfixes, docs, and discussions! 🎉
+We welcome contributions of all kinds - features, bugfixes, docs, and discussions! 🎉
 
 To get started, please check out the [contributing guide](./CONTRIBUTING.md) for best practices and coordination tips.
 
 
 ## License
-Distributed under the MIT License. See [LICENSE](https://github.com/HarrisonKramer/optiland/blob/master/LICENSE) for more information.
+Distributed under the MIT License. See [LICENSE](https://github.com/optiland/optiland/blob/master/LICENSE) for more information.
 
 
 ## Contact and Support
 
-If you **found a bug**, have a **feature request**, or need to report a **documentation issue**, please [open an issue](https://github.com/HarrisonKramer/optiland/issues).  
-If you have a **question** or would like to start a broader **discussion**, please use the [GitHub Discussions](https://github.com/HarrisonKramer/optiland/discussions) section.  
+If you **found a bug**, have a **feature request**, or need to report a **documentation issue**, please [open an issue](https://github.com/optiland/optiland/issues).  
+If you have a **question** or would like to start a broader **discussion**, please use the [GitHub Discussions](https://github.com/optiland/optiland/discussions) section.  
 
 This keeps all project-related communication public, searchable, and helpful for others who may encounter the same problems or questions.
 
 Before opening an issue or discussion, please make sure you have:  
 - Checked the [documentation](https://optiland.readthedocs.io/en/latest/) and API reference  
-- Searched existing [issues](https://github.com/HarrisonKramer/optiland/issues) and [discussions](https://github.com/HarrisonKramer/optiland/discussions)  
+- Searched existing [issues](https://github.com/optiland/optiland/issues) and [discussions](https://github.com/optiland/optiland/discussions)  
 - Made a reasonable attempt to solve the problem on your own  
 
 Well-prepared reports and questions help maintainers and the community respond more effectively. Very low-effort submissions (for example, asking for direct answers without reviewing available resources) are discouraged.

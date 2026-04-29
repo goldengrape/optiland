@@ -42,7 +42,8 @@ def glasses_selection(
     """
 
     csv_path = resources.files("optiland.database").joinpath("catalog_nk.csv")
-    catalogs = [c.lower() for c in catalogs]
+    if catalogs is not None:
+        catalogs = [c.lower() for c in catalogs]
     glasses = set()
 
     with open(csv_path, encoding="utf-8") as file:
@@ -155,7 +156,9 @@ def downsample_glass_map(glass_dict: dict, num_glasses_to_keep: int) -> dict:
     labels = be.array(labels)
     for cluster_index in range(num_glasses_to_keep):
         # Get indices of glasses in this cluster
-        cluster_indices = be.where(labels == cluster_index)[0]
+        mask = labels == cluster_index
+        indices = be.arange_indices(be.size(labels))
+        cluster_indices = indices[mask]
 
         # Extract cluster points
         cluster_points = be.array(glass_data[cluster_indices])

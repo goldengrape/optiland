@@ -81,9 +81,10 @@ class GeometricMTF(SpotDiagram):
         self.scale = scale
 
         resolved_wavelength = resolve_wavelength(optic, wavelength)
+        # wavelength must be converted to mm for frequency units cycles/mm
+        self.cutoff_freq = 1 / (resolved_wavelength * 1e-3 * optic.paraxial.FNO())
         if max_freq == "cutoff":
-            # wavelength must be converted to mm for frequency units cycles/mm
-            self.max_freq = 1 / (resolved_wavelength * 1e-3 * optic.paraxial.FNO())
+            self.max_freq = self.cutoff_freq
         else:
             # If a specific max_freq is provided, use it directly
             self.max_freq = max_freq
@@ -157,7 +158,8 @@ class GeometricMTF(SpotDiagram):
 
         """
         if self.scale:
-            phi = be.arccos(self.freq / self.max_freq)
+            ratio = be.clip(self.freq / self.cutoff_freq, 0.0, 1.0)
+            phi = be.arccos(ratio)
             scale_factor = 2 / be.pi * (phi - be.cos(phi) * be.sin(phi))
         else:
             scale_factor = 1
@@ -217,14 +219,14 @@ class GeometricMTF(SpotDiagram):
         ax.plot(
             be.to_numpy(self.freq),
             be.to_numpy(mtf_data[0]),
-            label=f"Hx: {field[0]:.1f}, Hy: {field[1]:.1f}, Tangential",
+            label=f"Hx: {field.coord[0]:.1f}, Hy: {field.coord[1]:.1f}, Tangential",
             color=color,
             linestyle="-",
         )
         ax.plot(
             be.to_numpy(self.freq),
             be.to_numpy(mtf_data[1]),
-            label=f"Hx: {field[0]:.1f}, Hy: {field[1]:.1f}, Sagittal",
+            label=f"Hx: {field.coord[0]:.1f}, Hy: {field.coord[1]:.1f}, Sagittal",
             color=color,
             linestyle="--",
         )

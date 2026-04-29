@@ -10,6 +10,7 @@ replicates the behavior of straight-line ray propagation, specifically:
 
 import pytest
 import optiland.backend as be
+from tests.utils import assert_allclose
 from optiland.rays import RealRays
 from optiland.surfaces.standard_surface import Surface as StandardSurface
 from optiland.geometries.standard import StandardGeometry
@@ -38,18 +39,18 @@ def propagation_setup():
         coordinate_system=CoordinateSystem(), radius=be.inf
     )
     surface_in = StandardSurface(
+        previous_surface=None,
+        material_post=medium,
         geometry=surface_in_geometry,
-        material_pre=air,
-        material_post=medium
     )
 
     cs_out = CoordinateSystem()
     cs_out.z = 10.0
     exit_geometry = StandardGeometry(coordinate_system=cs_out, radius=be.inf)
     surface_out = StandardSurface(
+        previous_surface=surface_in,
+        material_post=air,
         geometry=exit_geometry,
-        material_pre=medium,
-        material_post=air
     )
 
     # Create a batch of rays following the exact API from real_rays.py.
@@ -95,31 +96,36 @@ def test_propagate_updates_state_correctly(propagation_setup):
     
     expected_distance = 10.0
     
+    initial_x = be.copy(rays_in.x)
+    initial_y = be.copy(rays_in.y)
+    initial_z = be.copy(rays_in.z)
+    initial_opd = be.copy(rays_in.opd)
+
     # Act
     rays_out = model.propagate(rays_in, surface_in, surface_out)
 
     # Assert
-    expected_x = rays_in.x
-    expected_y = rays_in.y
-    expected_z = rays_in.z + expected_distance
+    expected_x = initial_x
+    expected_y = initial_y
+    expected_z = initial_z + expected_distance
     
-    be.testing.assert_allclose(rays_out.x, expected_x)
-    be.testing.assert_allclose(rays_out.y, expected_y)
-    be.testing.assert_allclose(rays_out.z, expected_z)
+    assert_allclose(rays_out.x, expected_x)
+    assert_allclose(rays_out.y, expected_y)
+    assert_allclose(rays_out.z, expected_z)
 
     # The logic for OPD accumulation remains correct.
-    expected_opd = rays_in.opd + medium.n(rays_in.w) * expected_distance
-    be.testing.assert_allclose(rays_out.opd, expected_opd)
+    expected_opd = initial_opd + medium.n(rays_in.w) * expected_distance
+    assert_allclose(rays_out.opd, expected_opd)
     
     # Check that other ray properties are carried over.
-    be.testing.assert_array_equal(rays_out.L, rays_in.L)
+    assert_allclose(rays_out.L, rays_in.L)
     # Intensity should be unchanged by propagation through a non-absorbing medium.
-    be.testing.assert_array_equal(rays_out.i, rays_in.i)
+    assert_allclose(rays_out.i, rays_in.i)
 
 
-def test_propagate_is_immutable(propagation_setup):
+def test_propagate_mutates_and_returns_input(propagation_setup):
     """
-    Tests if the propagate method returns a new object and does not mutate the input.
+    Tests if propagate mutates and returns the input rays object.
     """
     # Arrange
     model = HomogeneousPropagation()
@@ -137,17 +143,7 @@ def test_propagate_is_immutable(propagation_setup):
     )
 
     # Assert
-    # The returned object must not be the same instance as the input.
-    assert rays_out is not rays_in, "The returned object should be a new instance."
+    assert rays_out is rays_in
 
-    # The original rays_in object must remain unmodified.
-    be.testing.assert_array_equal(
-        rays_in.z,
-        original_z,
-        err_msg="The input rays_in object's z-coordinates were mutated."
-    )
-    be.testing.assert_array_equal(
-        rays_in.opd,
-        original_opd,
-        err_msg="The input rays_in object's OPD was mutated."
-    )
+    assert_allclose(rays_in.z, original_z + 10.0)
+    assert be.all(rays_in.opd > original_opd)

@@ -14,6 +14,10 @@ of the full system, including rays, is orchestrated by the `optiland.visualizati
 
    visualization.analysis.surface_sag
    visualization.info.lens_info_viewer
+   visualization.info.material_formatter
+   visualization.info.providers
+   visualization.palettes
+   visualization.system.interaction
    visualization.system.lens
    visualization.system.mirror
    visualization.system.optic_viewer
@@ -22,3 +26,4 @@ of the full system, including rays, is orchestrated by the `optiland.visualizati
    visualization.system.surface
    visualization.system.system
    visualization.system.utils
+   visualization.themes

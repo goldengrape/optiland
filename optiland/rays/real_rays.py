@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
     from optiland._types import BEArray, ScalarOrArray
+    from optiland.surfaces.standard_surface import Surface
 
 
 class RealRays(BaseRays):
@@ -70,14 +71,14 @@ class RealRays(BaseRays):
             All input arrays are converted to 1D arrays. Direction cosines
             (L, M, N) should be normalized such that L² + M² + N² = 1.
         """
-        self.x = be.as_array_1d(x)
-        self.y = be.as_array_1d(y)
-        self.z = be.as_array_1d(z)
-        self.L = be.as_array_1d(L)
-        self.M = be.as_array_1d(M)
-        self.N = be.as_array_1d(N)
-        self.i = be.as_array_1d(intensity)
-        self.w = be.as_array_1d(wavelength)
+        self.x = be.atleast_1d(x)
+        self.y = be.atleast_1d(y)
+        self.z = be.atleast_1d(z)
+        self.L = be.atleast_1d(L)
+        self.M = be.atleast_1d(M)
+        self.N = be.atleast_1d(N)
+        self.i = be.atleast_1d(intensity)
+        self.w = be.atleast_1d(wavelength)
         self.opd = be.zeros_like(self.x)
 
         # variables to hold pre-surface direction cosines
@@ -86,6 +87,27 @@ class RealRays(BaseRays):
         self.N0: BEArray | None = None
 
         self.is_normalized = True
+
+    def trace_on_surface(self, surface: Surface) -> RealRays:
+        """Dispatch to the surface's real ray trace kernel.
+
+        Args:
+            surface (Surface): The surface to trace through.
+
+        Returns:
+            RealRays: The traced real rays.
+
+        """
+        return surface._trace_real(self)
+
+    def record_on_surface(self, surface: Surface) -> None:
+        """Dispatch to the surface's real ray record method.
+
+        Args:
+            surface (Surface): The surface to record onto.
+
+        """
+        surface._record_real(self)
 
     def rotate_x(self, rx: ScalarOrArray):
         """Rotate the rays about the x-axis.
@@ -153,7 +175,9 @@ class RealRays(BaseRays):
         u = n1 / n2
         nx, ny, nz, dot = self._align_surface_normal(nx, ny, nz)
 
-        root = be.sqrt(1 - u**2 * (1 - dot**2))
+        # ignore runtime warnings for total internal reflection
+        with be.errstate(invalid="ignore"):
+            root = be.sqrt(1 - u**2 * (1 - dot**2))
         tx = u * self.L0 + nx * root - u * nx * dot
         ty = u * self.M0 + ny * root - u * ny * dot
         tz = u * self.N0 + nz * root - u * nz * dot

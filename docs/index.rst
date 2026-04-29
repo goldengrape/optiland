@@ -10,7 +10,7 @@ Welcome to Optiland's documentation!
 - Build, trace, and analyze lens and mirror systems (paraxial → real → polarization-aware)
 - Perform paraxial, wavefront, PSF/MTF, and scattering analyses
 - Optimize via local/global solvers or differentiable ML pipelines
-- Visualize in 2D (matplotlib) and 3D (VTK)
+- Visualize in 2D (interactive, themeable matplotlib) and 3D (VTK)
 - Extend with custom surfaces, coatings, optimization operands, and more
 
 Under the hood, Optiland leverages **NumPy** for CPU‑bound tasks and **PyTorch** for GPU acceleration and autograd‑enabled workflows - so you get the best of both worlds.
@@ -104,10 +104,11 @@ Not sure what to type in the shell? Here are a few ideas to explore Optiland rig
    gallery/optimization
    gallery/tolerancing
    gallery/freeforms
-   gallery/diffractive
+   gallery/diffractive_and_phase
    gallery/differentiable_ray_tracing
    gallery/real_world_projects
    gallery/external_tools
+   gallery/extended_sources
    gallery/miscellaneous
 
 
@@ -140,6 +141,7 @@ Not sure what to type in the shell? Here are a few ideas to explore Optiland rig
    developers_guide/analysis_framework
    developers_guide/optimization_framework
    developers_guide/tolerancing_framework
+   developers_guide/multiconfig_framework
    developers_guide/visualization_framework
    developers_guide/optiland_file_format
    developers_guide/gui
@@ -169,15 +171,19 @@ Not sure what to type in the shell? Here are a few ideas to explore Optiland rig
    api/api_optic
    api/api_optimization
    api/api_paraxial
+   api/api_phase
    api/api_physical_apertures
    api/api_rays
    api/api_raytrace
    api/api_solves
+   api/api_sources
    api/api_surfaces
+   api/api_thin_film
    api/api_tolerancing
    api/api_visualization
    api/api_wavefront
    api/api_zernike
+   api/api_multiconfig
 
 
 .. toctree::

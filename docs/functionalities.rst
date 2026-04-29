@@ -24,10 +24,12 @@ Analysis Tools
   Perform precise ray-based evaluations for both idealized and physically realistic systems.
 - **Polarization Ray Tracing**:
   Model vectorial light propagation, including polarization effects and birefringent materials.
+- **Jones Pupil Analysis**:
+  Visualize spatially resolved Jones matrix elements at the exit pupil to assess polarization properties.
 - **Comprehensive Optical Analysis**:
   Generate spot diagrams, ray aberration fans, OPD maps, distortion plots, and more.
 - **Wavefront Analysis**:
-  Decompose wavefronts into Zernike polynomials, compute RMS/peak error, and visualize wavefront error maps.
+  Decompose wavefronts into Zernike polynomials, compute RMS/peak error, and visualize wavefront error maps, with support for both focal (spherical reference) and afocal (planar reference) systems.
 - **PSF and MTF Computation**:
   Evaluate image quality and spatial frequency response in imaging systems.
 - **BSDF and Scattering Models**:
@@ -47,6 +49,20 @@ Optimization and Tolerancing
 - **Extensible Framework**:
   Add new optimization variables, constraints, or algorithms with minimal overhead.
 
+Extended Source Modeling
+-----------------------
+
+- **Extended Source Ray Tracing**:
+  Model spatially and angularly extended light sources and trace them through optical systems using the ``ExtendedSourceOptic`` wrapper.
+- **Single-Mode Fiber (SMF) Source**:
+  Generate physically accurate ray bundles representing fiber outputs, with Gaussian spatial and angular distributions and quasi-random Sobol sampling.
+- **Custom Source Support**:
+  Define custom source types by inheriting from ``BaseSource`` and implementing the ``generate_rays`` method.
+- **Source Visualization**:
+  Validate source definitions with multi-panel diagnostic plots showing spatial distributions, angular distributions, cross-sections, and ray propagation paths.
+- **Irradiance Analysis Compatibility**:
+  Compute incoherent irradiance distributions at detector surfaces from extended source illumination.
+
 Material Database
 -----------------
 
@@ -55,21 +71,33 @@ Material Database
 - **User-Defined Materials**:
   Create and register new materials with custom dispersion models.
 
+Coating and Thin Film Modeling
+------------------------------
+
+- **Multilayer Thin Film Stacks**:
+  Define, analyze, and optimize thin film stacks using the Transfer Matrix Method.
+- **Needle Synthesis**:
+  An iterative layer-insertion optimizer based on the Tikhonravov & Trubetskov algorithm. Configurable candidate materials and spectral/angular targets let you automatically design optimal thin-film coatings.
+- **Thin Film Tolerancing**:
+  Perform sensitivity analysis and Monte Carlo simulations to assess how manufacturing variations in layer thickness and refractive index affect spectral performance.
+
 Visualization
 -------------
 
-- **2D and 3D Visualization**:
-  Plot optical layouts, surface properties, and ray traces using matplotlib (2D) and VTK (3D).
-- **Interactive Debugging Tools**:
-  Inspect and interact with optical systems for rapid prototyping and analysis.
+- **Interactive 2D and 3D Visualization**:
+  Plot optical layouts, surface properties, and ray traces using Matplotlib (2D) and VTK (3D). The 2D plots are fully interactive, providing tooltips with detailed information when you hover over optical components.
+- **Customizable Visualization Themes**:
+  Optiland includes a flexible theme system to control the appearance of 2D plots. You can easily switch between predefined themes (e.g., ``light``, ``dark``) or create your own. For a hands-on example, see the :doc:`gallery/miscellaneous/themes` notebook.
 - **Optiland GUI**:
-  A fully functional graphical user interface (GUI) for interactive design, analysis, and visualization of optical systems. See the :ref:`gui_quickstart` for more details on using the GUI.
+  A fully functional graphical user interface (GUI) for interactive design, analysis, and visualization of optical systems. Features include a VS Code-style **Command Palette** (Ctrl+K) for quick access to actions and tools. See the :ref:`gui_quickstart` for more details on using the GUI.
 
 Interoperability and Scripting
 ------------------------------
 
 - **Zemax File Support**:
-  Import and adapt existing designs from Zemax for further development or analysis.
+  Import and adapt existing designs from Zemax .zmx files. Write Optiland designs to .zmx format.
+- **CODE V File Support**:
+  Import and adapt existing designs from CODE V .seq files. Write Optiland designs to .seq format.
 - **JSON-Based I/O**:
   Save and load optical systems in a human-readable JSON format.
 - **Python API**:

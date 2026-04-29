@@ -38,53 +38,66 @@ class HomogeneousPropagation(BasePropagationModel):
     def propagate(
         self,
         rays_in: "RealRays",
-        surface_in: "BaseSurface",
-        surface_out: "BaseSurface"
+        surface_in_or_distance: "BaseSurface | Any",
+        surface_out: "BaseSurface | None" = None,
     ) -> "RealRays":
         """
-        Propagates rays from an entry to an exit surface.
+        Propagates rays through a homogeneous medium.
 
-        This method follows a functional contract at the object level: it mutates
-        the attributes of the `rays_in` object and returns it. To support
-        differentiable backends like PyTorch, tensor modifications are performed
-        out-of-place (e.g., `x = x + delta`) rather than in-place (`x += delta`).
+        The method accepts both the upstream distance-based contract
+        ``propagate(rays, t)`` and the GRIN-oriented surface contract
+        ``propagate(rays, surface_in, surface_out)``. In both cases it mutates
+        and returns ``rays_in``.
 
         Returns:
             The modified `rays_in` object itself, allowing for method chaining.
         """
-        # 1. Calculate the geometric distance to the exit surface.
-        surface_out.geometry.localize(rays_in)
-        distance = surface_out.geometry.distance(rays_in)
-        surface_out.geometry.globalize(rays_in) # Return rays to global system
+        if surface_out is None:
+            distance = surface_in_or_distance
+            medium = self.material
+            update_opd = False
+            force_normalize = False
+        else:
+            surface_in = surface_in_or_distance
+            medium = surface_in.material_post
+            update_opd = True
+            force_normalize = True
 
-        # FIX: Use out-of-place assignments instead of in-place operations (+=, *=)
-        # to ensure compatibility with PyTorch's autograd engine.
-        
-        # 2. Update the ray positions.
+            # Calculate the geometric distance to the exit surface.
+            surface_out.geometry.localize(rays_in)
+            distance = surface_out.geometry.distance(rays_in)
+            surface_out.geometry.globalize(rays_in)
+
+        self._propagate_distance(rays_in, distance, medium, update_opd, force_normalize)
+        return rays_in
+
+    def _propagate_distance(
+        self,
+        rays_in: "RealRays",
+        distance: Any,
+        medium: "BaseMaterial",
+        update_opd: bool,
+        force_normalize: bool,
+    ) -> None:
+        """Propagate rays in-place by a known geometric distance."""
+        if medium is None:
+            raise ValueError("HomogeneousPropagation requires a material.")
+
+        # Use out-of-place assignments for PyTorch autograd compatibility.
         rays_in.x = rays_in.x + distance * rays_in.L
         rays_in.y = rays_in.y + distance * rays_in.M
         rays_in.z = rays_in.z + distance * rays_in.N
 
-        # 3. Handle physical effects within the medium.
-        medium = surface_in.material_post
-        
-        # 3a. Update the Optical Path Difference.
-        n = medium.n(rays_in.w)
-        rays_in.opd = rays_in.opd + n * distance
-        
-        # 3b. Apply attenuation based on Beer-Lambert law if k > 0.
+        if update_opd:
+            rays_in.opd = rays_in.opd + medium.n(rays_in.w) * distance
+
         k = medium.k(rays_in.w)
-        # alpha = 4 * pi * k / lambda
-        # I = I_0 * exp(-alpha * z)
-        # Note: distance is in mm, wavelength w is in um. Convert distance to um.
-        alpha = 4 * be.pi * k / (rays_in.w + 1e-12)
-        attenuation_factor = be.exp(-alpha * distance * 1e3)
-        rays_in.i = rays_in.i * attenuation_factor
+        if be.any(k > 0):
+            alpha = 4 * be.pi * k / (rays_in.w + 1e-12)
+            rays_in.i = rays_in.i * be.exp(-alpha * distance * 1e3)
 
-        # 4. Ensure final direction cosines are normalized.
-        rays_in.normalize()
-
-        return rays_in
+        if force_normalize or not rays_in.is_normalized:
+            rays_in.normalize()
 
     @classmethod
     def from_dict(

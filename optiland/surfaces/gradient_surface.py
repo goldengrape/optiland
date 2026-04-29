@@ -30,6 +30,7 @@ class GradientBoundarySurface(Surface):
         conic=0.0,
         material_pre=None,
         material_post=None,
+        previous_surface=None,
         **kwargs,
     ):
         """
@@ -59,9 +60,16 @@ class GradientBoundarySurface(Surface):
         if material_post is None:
             material_post = IdealMaterial(n=1.5)
 
+        if previous_surface is None:
+            previous_surface = Surface(
+                previous_surface=None,
+                material_post=material_pre,
+                geometry=StandardGeometry(CoordinateSystem(), radius=be.inf),
+            )
+
         super().__init__(
             geometry=geometry,
-            material_pre=material_pre,
+            previous_surface=previous_surface,
             material_post=material_post,
             aperture=semi_diameter * 2 if semi_diameter is not None else None,
             **kwargs,

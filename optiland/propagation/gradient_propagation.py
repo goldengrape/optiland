@@ -139,7 +139,7 @@ def propagate_through_gradient(
         intersected_mask_local = (distance_to_intersect > 1e-9) & (distance_to_intersect <= segment_len + 1e-9)
 
         if be.any(intersected_mask_local):
-            active_indices_global = be.where(active_rays)[0]
+            active_indices_global = be.argwhere(active_rays)[:, 0]
             intersected_indices_global = active_indices_global[intersected_mask_local]
 
             r_intersect_start = r_active[intersected_mask_local]
